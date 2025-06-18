@@ -21,6 +21,33 @@ This API returns monthly revenue forecasts from now until the end of the next qu
 - Some months have deals, some don't: All months are shown; months with no deals have zero revenue.
 - Partial data: Deals missing `expected_close_date`, `value`, or `probability` are skipped.
 
+## Response Structure
+```json
+{
+  "forecast": {
+    "2025-06": {
+      "forecasted_revenue": 10000,
+      "deals": ["deal_1", "deal_2"],
+      "quarter": "2025-Q2"
+    },
+    "2025-07": {
+      "forecasted_revenue": 5000,
+      "deals": ["deal_3"],
+      "quarter": "2025-Q3"
+    }
+  }
+}
+```
+
+If no deals are expected to close in the forecast period, the response will also include a `message` property:
+
+```json
+{
+  "forecast": { ... },
+  "message": "No deals expected to close from now until the end of next quarter. Please check your data or add upcoming deals."
+}
+```
+
 ## Future Enhancements
 - Support custom forecast ranges via query parameters (e.g., `?months=6`).
 - Add filters (e.g., by sales rep, mode, or stage) for more granular forecasting.
