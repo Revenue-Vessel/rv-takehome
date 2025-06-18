@@ -1,0 +1,10 @@
+// app/hello/page.js (for App Router)
+// or pages/hello.js (for Pages Router)
+
+export default function HelloWorldPage() {
+  return (
+    <div>
+      <h1>Hello World</h1>
+    </div>
+  );
+}
