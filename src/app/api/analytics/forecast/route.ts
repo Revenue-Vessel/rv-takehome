@@ -40,6 +40,20 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const endDate = getEndOfNextQuarter(now);
 
+    // Calculate historical win rates by transportation_mode
+    const winRates: Record<string, number> = {};
+    const closedDeals = deals.filter(
+      d => d.stage === "closed_won" || d.stage === "closed_lost"
+    );
+    const modes = ["trucking", "rail", "ocean", "air"];
+    for (const mode of modes) {
+      const modeDeals = closedDeals.filter(d => d.transportation_mode === mode);
+      const won = modeDeals.filter(d => d.stage === "closed_won").length;
+      const total = modeDeals.length;
+      winRates[mode] = total > 0 ? won / total : 1; // Default to 1 if no history
+    }
+    console.log("Calculated win rates:", winRates);
+    
     // Pre-populate forecast for all months from now until end of next quarter
     const forecast: Record<string, { forecasted_revenue: number; deals: string[]; quarter: string }> = {};
     let iter = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -62,7 +76,9 @@ export async function GET(request: NextRequest) {
       if (closeDate >= now && closeDate < endDate) {
         const key = getMonthKey(closeDate);
         if (forecast[key]) {
-          forecast[key].forecasted_revenue += deal.value * (deal.probability / 100);
+          const winRate = winRates[deal.transportation_mode] ?? 1;
+          console.log(`Deal ${deal.deal_id} closing in ${key} with win rate ${winRate}`);
+          forecast[key].forecasted_revenue += deal.value * (deal.probability / 100) * winRate;
           forecast[key].deals.push(deal.deal_id);
           hasForecast = true;
         }
