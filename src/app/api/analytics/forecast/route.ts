@@ -22,8 +22,16 @@ export async function GET(request: NextRequest) {
     // Calculate the end date (3 months from now)
     const endDate = new Date(now.getFullYear(), now.getMonth() + 3, 1);
 
-    // Group forecast by quarter
+    // Pre-populate forecast for all quarters in the next 3 months
     const forecast: Record<string, { forecasted_revenue: number; deals: string[] }> = {};
+    const quartersSet = new Set<string>();
+    for (let i = 0; i < 3; i++) {
+      const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      quartersSet.add(getQuarterKey(date));
+    }
+    for (const q of quartersSet) {
+      forecast[q] = { forecasted_revenue: 0, deals: [] };
+    }
 
     let hasForecast = false;
 
@@ -34,9 +42,6 @@ export async function GET(request: NextRequest) {
       // Only include deals closing in the next 3 months
       if (closeDate >= now && closeDate < endDate) {
         const key = getQuarterKey(closeDate);
-        if (!forecast[key]) {
-          forecast[key] = { forecasted_revenue: 0, deals: [] };
-        }
         forecast[key].forecasted_revenue += deal.value * (deal.probability / 100);
         forecast[key].deals.push(deal.deal_id);
         hasForecast = true;
@@ -45,7 +50,7 @@ export async function GET(request: NextRequest) {
 
     if (!hasForecast) {
       return NextResponse.json({
-        forecast: {},
+        forecast,
         message:
           "No deals expected to close in the next 3 months. Please check your data or add upcoming deals.",
       });
