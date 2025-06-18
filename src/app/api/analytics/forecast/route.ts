@@ -70,6 +70,7 @@ export async function GET(request: NextRequest) {
 
     for (const deal of deals) {
       if (!deal.expected_close_date || !deal.value || !deal.probability) continue;
+      if (deal.stage === "closed_won" || deal.stage === "closed_lost") continue; // Exclude closed deals from forecast
       const closeDate = new Date(deal.expected_close_date);
 
       // Only include deals closing from now until end of next quarter
