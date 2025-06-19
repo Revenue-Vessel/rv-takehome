@@ -31,6 +31,7 @@
 
 - **Risk Scoring Approach:**  
   I’m using only "days stalled" (number of days since last stage movement) for risk scoring.  
+  Risk score is 1 if stalled for more than 21 days, and increases by 1 for every additional 14 days (2 weeks) the deal remains stalled.  
   Assumption: Simplicity is best for the first version; I can always add more factors later if needed.
 
 - **Processing Timing:**  

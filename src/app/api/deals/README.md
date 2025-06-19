@@ -34,6 +34,11 @@ Sales leaders can’t track every single deal to ensure they’re on track. They
 ]
 ```
 
-- The stalled threshold is configurable via the optional `stalled_days` query parameter (default: **21** days).
-- Risk scoring is simple for MVP: 1 for stalled, 2 for severely stalled (2x threshold).
+- The stalled threshold is configurable via the `stalled_days` query parameter (default: **21** days).
+- **Risk scoring:** Risk score is 1 if stalled for more than 21 days. The risk score increases by 1 for every additional 14 days (2 weeks) the deal remains stalled.  
+  - Example:  
+    - 22–35 days stalled: risk_score = 1  
+    - 36–49 days stalled: risk_score = 2  
+    - 50–63 days stalled: risk_score = 3  
+    - etc.
 - Uses the existing deals data model and persistence.
