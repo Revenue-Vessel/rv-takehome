@@ -37,17 +37,3 @@ function getDealsByStage(deals: Deal[]): Record<string, Deal[]> {
     return acc;
   }, {} as Record<string, Deal[]>);
 }
-
-// Utility functions for deal analytics
-export function daysSince(dateString: string): number {
-  const lastChange = new Date(dateString);
-  const now = new Date();
-  const diff = now.getTime() - lastChange.getTime();
-  return Math.floor(diff / (1000 * 60 * 60 * 24));
-}
-
-export function riskScore(daysStalled: number, threshold: number): number {
-  if (daysStalled < threshold) return 0;
-  // Risk score is 1 if stalled for threshold, increases by 1 for every additional 14 days
-  return 1 + Math.floor((daysStalled - threshold) / 14);
-}
