@@ -409,12 +409,10 @@ describe("/api/deals", () => {
         { ...validDealData, deal_id: "DEAL-004", stage: "closed_won" },
         { ...validDealData, deal_id: "DEAL-005", stage: "closed_lost" },
       ];
-
       mockRepository.find.mockResolvedValue(mockDeals);
-
-      const response = await GET();
+      const request = new NextRequest("http://localhost:3000/api/deals");
+      const response = await GET(request);
       const data = await response.json();
-
       expect(response.status).toBe(200);
       expect(data.totalDeals).toBe(5);
       expect(data.stageAnalytics).toBeDefined();
@@ -430,10 +428,9 @@ describe("/api/deals", () => {
 
     it("should handle empty database", async () => {
       mockRepository.find.mockResolvedValue([]);
-
-      const response = await GET();
+      const request = new NextRequest("http://localhost:3000/api/deals");
+      const response = await GET(request);
       const data = await response.json();
-
       expect(response.status).toBe(200);
       expect(data.totalDeals).toBe(0);
       expect(data.stageAnalytics).toEqual({});
@@ -441,10 +438,9 @@ describe("/api/deals", () => {
 
     it("should handle database errors", async () => {
       mockRepository.find.mockRejectedValue(new Error("Database error"));
-
-      const response = await GET();
+      const request = new NextRequest("http://localhost:3000/api/deals");
+      const response = await GET(request);
       const data = await response.json();
-
       expect(response.status).toBe(500);
       expect(data.error).toBe("Internal server error");
     });
@@ -455,12 +451,10 @@ describe("/api/deals", () => {
         { ...validDealData, deal_id: "DEAL-002", stage: "qualified" },
         { ...validDealData, deal_id: "DEAL-003", stage: "proposal" },
       ];
-
       mockRepository.find.mockResolvedValue(mockDeals);
-
-      const response = await GET();
+      const request = new NextRequest("http://localhost:3000/api/deals");
+      const response = await GET(request);
       const data = await response.json();
-
       expect(response.status).toBe(200);
       expect(data.totalDeals).toBe(3);
       // Each stage should have 33% (rounded from 33.33%)
