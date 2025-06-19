@@ -70,6 +70,11 @@ export async function GET(request: NextRequest) {
       const dealRepository = dataSource.getRepository(Deal);
       const deals = await dealRepository.find();
       const stalledDeals = deals
+        // Only include deals that are not closed
+        .filter(
+          (deal: Deal) =>
+            deal.stage !== "closed_won" && deal.stage !== "closed_lost"
+        )
         .map((deal: Deal) => {
           const days = daysSince(deal.updated_date || deal.created_date);
           const score = riskScore(days, stalledDays);
