@@ -48,8 +48,18 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+
+    // Validate 'stalled' param: must be "0" or "1"
+    const stalledParam = searchParams.get("stalled");
+    if (stalledParam !== null && stalledParam !== "0" && stalledParam !== "1") {
+      return NextResponse.json(
+        { error: "'stalled' must be either 0 or 1" },
+        { status: 400 }
+      );
+    }
+
     // Trend Detection: Stalled Deals with Risk Scoring
-    if (searchParams.get("stalled") === "1") {
+    if (stalledParam === "1") {
       const DEFAULT_STALLED_DAYS = 21;
       function daysSince(dateString: string): number {
         const lastChange = new Date(dateString);
@@ -62,10 +72,14 @@ export async function GET(request: NextRequest) {
         // Risk score is 1 if stalled for threshold, increases by 1 for every additional 14 days
         return 1 + Math.floor((daysStalled - threshold) / 14);
       }
-      const stalledDays = parseInt(
+      let stalledDays = parseInt(
         searchParams.get("stalled_days") || String(DEFAULT_STALLED_DAYS),
         10
       );
+      // Validate stalledDays: must be > 0, else use default
+      if (isNaN(stalledDays) || stalledDays < 1) {
+        stalledDays = DEFAULT_STALLED_DAYS;
+      }
       const dataSource = await initializeDataSource();
       const dealRepository = dataSource.getRepository(Deal);
       const deals = await dealRepository.find();
@@ -78,21 +92,18 @@ export async function GET(request: NextRequest) {
         .map((deal: Deal) => {
           const days = daysSince(deal.updated_date || deal.created_date);
           const score = riskScore(days, stalledDays);
-          if (score > 0) {
-            return {
-              deal_id: deal.deal_id,
-              company_name: deal.company_name,
-              owner: deal.sales_rep,
-              stage: deal.stage,
-              value: deal.value,
-              last_stage_change: deal.updated_date || deal.created_date,
-              days_stalled: days,
-              risk_score: score,
-            };
-          }
-          return null;
+          return {
+            deal_id: deal.deal_id,
+            company_name: deal.company_name,
+            owner: deal.sales_rep,
+            stage: deal.stage,
+            value: deal.value,
+            last_stage_change: deal.updated_date || deal.created_date,
+            days_stalled: days,
+            risk_score: score,
+          };
         })
-        .filter(Boolean);
+        .filter((deal) => deal.risk_score > 0);
       return NextResponse.json(stalledDeals);
     }
 
