@@ -31,16 +31,16 @@
 
 - **Risk Scoring Approach:**  
   I’m using only "days stalled" (number of days since last stage movement) for risk scoring.  
-  _Assumption: Simplicity is best for the first version; I can always add more factors later if needed._
+  Assumption: Simplicity is best for the first version; I can always add more factors later if needed.
 
 - **Processing Timing:**  
   I’m focusing on real-time visual indicators in the dashboard for now, not any background or batch processing.  
-  _Assumption: Visual cues are enough for the MVP, and more advanced processing can come later._
+  Assumption: Visual cues are enough for the MVP, and more advanced processing can come later.
 
 - **Configurability:**  
   I’m using a default threshold of 21 days for "stalled" status, with plans to make this configurable in the future.  
-  _Assumption: 21 days feels like a reasonable starting point based on typical sales cycles._
+  Assumption: 21 days feels like a reasonable starting point based on typical sales cycles.
 
 - **Action Tracking:**  
   I’m not tracking actions taken on flagged deals in this phase.  
-  _Assumption: The main goal right now is visibility, not workflow or audit, for the MVP._
+  Assumption: The main goal right now is visibility, not workflow or audit, for the MVP.
