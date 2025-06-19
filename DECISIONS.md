@@ -27,7 +27,9 @@
 
 ---
 
-### Trend Detection: Stalled Deals with Risk Scoring — Decisions & Assumptions
+### Trend Detection: Stalled Deals with Risk Scoring 
+
+## Decisions & Assumptions
 
 - **Risk Scoring Approach:**  
   I’m using only "days stalled" (number of days since last stage movement) for risk scoring.  
@@ -45,3 +47,17 @@
 - **Action Tracking:**  
   I’m not tracking actions taken on flagged deals in this phase.  
   Assumption: The main goal right now is visibility, not workflow or audit, for the MVP.
+
+## Edge Cases & Assumptions
+
+- Every deal is assumed to always have valid ISO date fields for creation and updates.
+- We treat every update as a stage change after creation, just to keep things simple.
+- Only deals that are not closed (so, not "closed_won" or "closed_lost") are ever considered for stalling.
+- Deal IDs are always unique, and we don’t care about the deal value for stalling logic.
+- All dates are in ISO format, so there’s no timezone weirdness to worry about.
+- The `stalled_days` parameter must be a positive integer; if it’s missing or invalid, we just use the default.
+
+## Possible Improvements
+
+- agination for large numbers of deals.
+- Additional parameters for risk score calculation rather than just stalled days.
