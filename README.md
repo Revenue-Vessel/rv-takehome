@@ -53,13 +53,11 @@ I wanted to also address analyzing team performance but I was short on time
 
 ## C. AI Collaboration Report
 
-### Manual changes after the boilerplate code
-
-
 ### Code Rewritten For:
 - **Edge Case Handling:** Skipped deals missing `expected_close_date`, `value`, or `probability` in forecasting.
 - **DB Optimization:** Batched DB queries for win rate calculation instead of per-deal queries.
 - **Test Logic AI Didn't Suggest:** Added tests for months with no deals and for deals with missing fields.
+- **Fixed Failing tests on deals:** Fixed some failing tests on deals.
 
 ## D. Technical Decisions
 
@@ -69,10 +67,7 @@ I wanted to also address analyzing team performance but I was short on time
   - Client-side filtering is fast for small datasets, but would move to server for large data.
 
 ## E. Demo
+pushed to `demo-images` directory
 
-## F. Priorities with More Time
+## F. Feature specific work flows and thought processes are captured in their respective folder's `README.md`
 
-- I would add user roles and deal history tracking for better auditability.
-- Move filtering and sorting to server-side for large datasets.
-- Add more granular forecasting filters (by rep, mode, etc.).
-- Implement notifications for stalled deals.
