@@ -59,8 +59,8 @@ export async function GET(request: NextRequest) {
       }
       function riskScore(daysStalled: number, threshold: number): number {
         if (daysStalled < threshold) return 0;
-        if (daysStalled < threshold * 2) return 1;
-        return 2;
+        // Risk score is 1 if stalled for threshold, increases by 1 for every additional 14 days
+        return 1 + Math.floor((daysStalled - threshold) / 14);
       }
       const stalledDays = parseInt(
         searchParams.get("stalled_days") || String(DEFAULT_STALLED_DAYS),
@@ -120,8 +120,8 @@ export async function GET_stalled(request: NextRequest) {
   }
   function riskScore(daysStalled: number, threshold: number): number {
     if (daysStalled < threshold) return 0;
-    if (daysStalled < threshold * 2) return 1;
-    return 2;
+    // Risk score is 1 if stalled for threshold, increases by 1 for every additional 14 days
+    return 1 + Math.floor((daysStalled - threshold) / 14);
   }
   try {
     const { searchParams } = new URL(request.url);
