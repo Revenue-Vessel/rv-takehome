@@ -463,4 +463,101 @@ describe("/api/deals", () => {
       expect(data.stageAnalytics.proposal.percentage).toBe(33);
     });
   });
+
+  describe("GET /api/deals?stalled=1 (stalled deals with risk scoring)", () => {
+    const now = new Date("2025-06-18T00:00:00Z");
+    const daysAgo = (n: number) => {
+      const d = new Date(now);
+      d.setUTCDate(d.getUTCDate() - n);
+      return d.toISOString();
+    };
+
+    beforeAll(() => {
+      jest.useFakeTimers().setSystemTime(now);
+    });
+    afterAll(() => {
+      jest.useRealTimers();
+    });
+
+    it("should return only non-closed deals with risk_score > 0", async () => {
+      const mockDeals = [
+        { ...validDealData, deal_id: "D1", stage: "prospect", updated_date: daysAgo(30) }, // stalled, should be included
+        { ...validDealData, deal_id: "D2", stage: "qualified", updated_date: daysAgo(10) }, // not stalled, risk_score=0
+        { ...validDealData, deal_id: "D3", stage: "closed_won", updated_date: daysAgo(40) }, // closed, should be excluded
+        { ...validDealData, deal_id: "D4", stage: "closed_lost", updated_date: daysAgo(50) }, // closed, should be excluded
+      ];
+      mockRepository.find.mockResolvedValue(mockDeals);
+      const request = new NextRequest("http://localhost:3000/api/deals?stalled=1");
+      const response = await GET(request);
+      const data = await response.json();
+      expect(response.status).toBe(200);
+      expect(Array.isArray(data)).toBe(true);
+      expect(data.length).toBe(1);
+      expect(data[0].deal_id).toBe("D1");
+      expect(data[0].risk_score).toBeGreaterThan(0);
+    });
+
+    it("should calculate risk_score correctly based on days stalled and threshold", async () => {
+      const mockDeals = [
+        { ...validDealData, deal_id: "D1", stage: "prospect", updated_date: daysAgo(21) }, // exactly threshold
+        { ...validDealData, deal_id: "D2", stage: "prospect", updated_date: daysAgo(35) }, // 14 days over threshold
+        { ...validDealData, deal_id: "D3", stage: "prospect", updated_date: daysAgo(49) }, // 28 days over threshold
+      ];
+      mockRepository.find.mockResolvedValue(mockDeals);
+      const request = new NextRequest("http://localhost:3000/api/deals?stalled=1");
+      const response = await GET(request);
+      const data = await response.json();
+      expect(data.find((d: any) => d.deal_id === "D1").risk_score).toBe(1);
+      expect(data.find((d: any) => d.deal_id === "D2").risk_score).toBe(2);
+      expect(data.find((d: any) => d.deal_id === "D3").risk_score).toBe(3);
+    });
+
+    it("should exclude deals with risk_score = 0 (not stalled)", async () => {
+      const mockDeals = [
+        { ...validDealData, deal_id: "D1", stage: "prospect", updated_date: daysAgo(5) }, // not stalled
+        { ...validDealData, deal_id: "D2", stage: "prospect", updated_date: daysAgo(22) }, // stalled
+      ];
+      mockRepository.find.mockResolvedValue(mockDeals);
+      const request = new NextRequest("http://localhost:3000/api/deals?stalled=1");
+      const response = await GET(request);
+      const data = await response.json();
+      expect(data.length).toBe(1);
+      expect(data[0].deal_id).toBe("D2");
+    });
+
+    it("should respect the stalled_days param and default to 21 if invalid", async () => {
+      const mockDeals = [
+        { ...validDealData, deal_id: "D1", stage: "prospect", updated_date: daysAgo(10) }, // not stalled for 5 days threshold
+        { ...validDealData, deal_id: "D2", stage: "prospect", updated_date: daysAgo(6) }, // just over 5 days
+      ];
+      mockRepository.find.mockResolvedValue(mockDeals);
+      // Custom threshold
+      let request = new NextRequest("http://localhost:3000/api/deals?stalled=1&stalled_days=5");
+      let response = await GET(request);
+      let data = await response.json();
+      expect(data.length).toBe(2);
+      // Invalid threshold (should default to 21)
+      request = new NextRequest("http://localhost:3000/api/deals?stalled=1&stalled_days=abc");
+      response = await GET(request);
+      data = await response.json();
+      expect(data.length).toBe(0);
+    });
+
+    it("should return 400 for invalid 'stalled' param", async () => {
+      const request = new NextRequest("http://localhost:3000/api/deals?stalled=foo");
+      const response = await GET(request);
+      const data = await response.json();
+      expect(response.status).toBe(400);
+      expect(data.error).toMatch(/stalled/);
+    });
+
+    it("should handle database errors", async () => {
+      mockRepository.find.mockRejectedValue(new Error("Database error"));
+      const request = new NextRequest("http://localhost:3000/api/deals?stalled=1");
+      const response = await GET(request);
+      const data = await response.json();
+      expect(response.status).toBe(500);
+      expect(data.error).toBe("Internal server error");
+    });
+  });
 });
