@@ -45,12 +45,56 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    // Trend Detection: Stalled Deals with Risk Scoring
+    if (searchParams.get("stalled") === "1") {
+      const DEFAULT_STALLED_DAYS = 21;
+      function daysSince(dateString: string): number {
+        const lastChange = new Date(dateString);
+        const now = new Date();
+        const diff = now.getTime() - lastChange.getTime();
+        return Math.floor(diff / (1000 * 60 * 60 * 24));
+      }
+      function riskScore(daysStalled: number, threshold: number): number {
+        if (daysStalled < threshold) return 0;
+        if (daysStalled < threshold * 2) return 1;
+        return 2;
+      }
+      const stalledDays = parseInt(
+        searchParams.get("stalled_days") || String(DEFAULT_STALLED_DAYS),
+        10
+      );
+      const dataSource = await initializeDataSource();
+      const dealRepository = dataSource.getRepository(Deal);
+      const deals = await dealRepository.find();
+      const stalledDeals = deals
+        .map((deal: Deal) => {
+          const days = daysSince(deal.updated_date || deal.created_date);
+          const score = riskScore(days, stalledDays);
+          if (score > 0) {
+            return {
+              deal_id: deal.deal_id,
+              company_name: deal.company_name,
+              owner: deal.sales_rep,
+              stage: deal.stage,
+              value: deal.value,
+              last_stage_change: deal.updated_date || deal.created_date,
+              days_stalled: days,
+              risk_score: score,
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
+      return NextResponse.json(stalledDeals);
+    }
+
+    // Normal analytics response
     const dataSource = await initializeDataSource();
     const dealRepository = dataSource.getRepository(Deal);
     const deals = await dealRepository.find();
-
     const { totalDeals, stageAnalytics } = getStageAnalytics(deals);
 
     return NextResponse.json({
@@ -59,6 +103,57 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error fetching deals by stage:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET_stalled(request: NextRequest) {
+  const DEFAULT_STALLED_DAYS = 21;
+  function daysSince(dateString: string): number {
+    const lastChange = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - lastChange.getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
+  }
+  function riskScore(daysStalled: number, threshold: number): number {
+    if (daysStalled < threshold) return 0;
+    if (daysStalled < threshold * 2) return 1;
+    return 2;
+  }
+  try {
+    const { searchParams } = new URL(request.url);
+    const stalledDays = parseInt(
+      searchParams.get("stalled_days") || String(DEFAULT_STALLED_DAYS),
+      10
+    );
+    const dataSource = await initializeDataSource();
+    const dealRepository = dataSource.getRepository(Deal);
+    const deals = await dealRepository.find();
+    const stalledDeals = deals
+      .map((deal: Deal) => {
+        const days = daysSince(deal.updated_date || deal.created_date);
+        const score = riskScore(days, stalledDays);
+        if (score > 0) {
+          return {
+            deal_id: deal.deal_id,
+            company_name: deal.company_name,
+            owner: deal.sales_rep,
+            stage: deal.stage,
+            value: deal.value,
+            last_stage_change: deal.updated_date || deal.created_date,
+            days_stalled: days,
+            risk_score: score,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+    return NextResponse.json(stalledDeals);
+  } catch (error) {
+    console.error("Error in GET_stalled /api/deals:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
