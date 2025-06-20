@@ -44,6 +44,17 @@ export interface Territory { id: number; name: string; }
 type SortField = keyof Deal;
 type SortDirection = "asc" | "desc";
 
+const AuditLoadingSpinner: React.FC<{ className?: string; size?: number }> = ({ className = "", size = 48 }) => (
+  <div
+    className={`animate-spin rounded-full border-4 border-blue-200 border-t-blue-600 ${className}`}
+    style={{ width: size, height: size }}
+    role="status"
+    aria-label="Loading"
+  >
+    <span className="sr-only">Loading...</span>
+  </div>
+);
+
 const DealList: React.FC = () => {
   const [pipelineData, setPipelineData] = useState<PipelineData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -520,9 +531,7 @@ const DealList: React.FC = () => {
             <h2 className="text-xl font-bold mb-4 text-blue-800">Audit Trail</h2>
             <div className="mb-4 min-h-[200px] max-h-80 overflow-y-auto flex items-center justify-center">
               {auditLoading ? (
-                <div className="flex justify-center items-center w-full h-16">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                </div>
+                <AuditLoadingSpinner />
               ) : auditError ? (
                 <div className="text-red-600 text-center w-full">{auditError}</div>
               ) : auditTrail.length === 0 ? (

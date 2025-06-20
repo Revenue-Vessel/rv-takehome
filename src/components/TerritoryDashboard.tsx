@@ -43,38 +43,28 @@ const TerritoryDashboard: React.FC = () => {
     });
   }, []);
 
-  useEffect(() => {
-    if (loading) return;
-    setLoading(true);
-    let url = "/api/territories";
-    const params = [];
-    if (regionFilter) params.push(`region=${encodeURIComponent(regionFilter)}`);
-    if (repFilter) params.push(`rep=${repFilter}`);
-    if (params.length) url += `?${params.join("&")}`;
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => {
-        setTerritories(data);
-        setLoading(false);
-      });
-  }, [regionFilter, repFilter]);
+  const filteredAndSortedTerritories = useMemo(() => {
+    const filtered = territories.filter(t => {
+      if (regionFilter && t.region.toLowerCase() !== regionFilter.toLowerCase()) return false;
+      if (repFilter && !t.assigned_reps.map(r => Number(r)).includes(repFilter)) return false;
+      return true;
+    });
 
-  const sortedTerritories = useMemo(() => {
-    return [...territories].sort((a, b) => {
+    return filtered.sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
-      if (typeof aValue === "string" && typeof bValue === "string") {
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
         aValue = aValue.toLowerCase();
         bValue = bValue.toLowerCase();
       }
       if (aValue === bValue) return 0;
-      if (aValue == null) return sortDirection === "asc" ? -1 : 1;
-      if (bValue == null) return sortDirection === "asc" ? 1 : -1;
+      if (aValue == null) return sortDirection === 'asc' ? -1 : 1;
+      if (bValue == null) return sortDirection === 'asc' ? 1 : -1;
       return aValue < bValue
-        ? sortDirection === "asc" ? -1 : 1
-        : sortDirection === "asc" ? 1 : -1;
+        ? sortDirection === 'asc' ? -1 : 1
+        : sortDirection === 'asc' ? 1 : -1;
     });
-  }, [territories, sortField, sortDirection]);
+  }, [territories, sortField, sortDirection, regionFilter, repFilter]);
 
   const handleSort = (field: keyof Territory) => {
     if (field === sortField) {
@@ -156,7 +146,7 @@ const TerritoryDashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedTerritories.map((t, idx) => (
+                  {filteredAndSortedTerritories.map((t, idx) => (
                     <tr key={t.id} className={`transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-blue-50"} hover:bg-blue-100`}>
                       <td className="px-4 py-2 font-semibold text-gray-900 whitespace-nowrap">{t.name}</td>
                       <td className="px-4 py-2 text-gray-700 whitespace-nowrap">{t.region}</td>
@@ -211,7 +201,7 @@ const TerritoryDashboard: React.FC = () => {
             <div className="h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={sortedTerritories.map(t => ({
+                  data={filteredAndSortedTerritories.map(t => ({
                     name: t.name,
                     Revenue: t.performance_metrics?.revenue ?? 0,
                     "Won Deals": t.performance_metrics?.won_deals ?? 0,
