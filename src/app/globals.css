@@ -24,3 +24,17 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Global form input styles for better contrast */
+input, select, textarea {
+  @apply text-gray-900 bg-white;
+}
+
+input::placeholder {
+  @apply text-gray-500;
+}
+
+/* Ensure focus states are visible */
+input:focus, select:focus, textarea:focus {
+  @apply outline-none ring-2 ring-blue-500;
+}
