@@ -1,23 +1,9 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
+import LoadingSpinner from "./LoadingSpinner";
+import type { Deal } from "./DealList";
 
-interface Deal {
-  id: number;
-  deal_id: string;
-  company_name: string;
-  contact_name: string;
-  transportation_mode: string;
-  stage: string;
-  value: number;
-  probability: number;
-  created_date: string;
-  updated_date: string;
-  expected_close_date: string;
-  sales_rep: string;
-  origin_city: string;
-  destination_city: string;
-  cargo_type?: string;
-}
+
 
 interface PipelineData {
   totalDeals: number;
@@ -135,7 +121,7 @@ const PerformanceMetrics: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <LoadingSpinner />
       </div>
     );
   }

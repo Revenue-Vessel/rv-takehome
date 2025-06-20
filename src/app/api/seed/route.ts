@@ -1,194 +1,82 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { initializeDataSource } from "../../../data-source";
+import { Rep } from "../../../lib/entities/Rep";
+import { Territory } from "../../../lib/entities/Territory";
 import { Deal } from "../../../lib/entities/deals/Deal";
 
-const sampleDeals = [
-  {
-    deal_id: "RV-001",
-    company_name: "Pacific Logistics Inc",
-    contact_name: "Sarah Chen",
-    transportation_mode: "ocean",
-    stage: "proposal",
-    value: 45000,
-    probability: 70,
-    created_date: "2024-10-15T09:00:00Z",
-    updated_date: "2024-11-28T14:30:00Z",
-    expected_close_date: "2024-12-15T00:00:00Z",
-    sales_rep: "Mike Rodriguez",
-    origin_city: "Los Angeles, CA",
-    destination_city: "Shanghai, China",
-    cargo_type: "Electronics",
-  },
-  {
-    deal_id: "RV-002",
-    company_name: "Mountain Transport Co",
-    contact_name: "David Park",
-    transportation_mode: "trucking",
-    stage: "negotiation",
-    value: 12000,
-    probability: 85,
-    created_date: "2024-11-01T11:15:00Z",
-    updated_date: "2024-12-03T16:45:00Z",
-    expected_close_date: "2024-12-10T00:00:00Z",
-    sales_rep: "Jennifer Walsh",
-    origin_city: "Denver, CO",
-    destination_city: "Phoenix, AZ",
-    cargo_type: "Machinery",
-  },
-  {
-    deal_id: "RV-003",
-    company_name: "Global Freight Solutions",
-    contact_name: "Maria Rodriguez",
-    transportation_mode: "air",
-    stage: "prospect",
-    value: 75000,
-    probability: 30,
-    created_date: "2024-11-20T08:30:00Z",
-    updated_date: "2024-11-25T10:15:00Z",
-    expected_close_date: "2025-01-20T00:00:00Z",
-    sales_rep: "Tom Wilson",
-    origin_city: "Miami, FL",
-    destination_city: "London, UK",
-    cargo_type: "Pharmaceuticals",
-  },
-  {
-    deal_id: "RV-004",
-    company_name: "Midwest Rail Corp",
-    contact_name: "James Thompson",
-    transportation_mode: "rail",
-    stage: "qualified",
-    value: 28000,
-    probability: 60,
-    created_date: "2024-11-10T14:20:00Z",
-    updated_date: "2024-11-30T09:45:00Z",
-    expected_close_date: "2024-12-25T00:00:00Z",
-    sales_rep: "Lisa Anderson",
-    origin_city: "Chicago, IL",
-    destination_city: "Houston, TX",
-    cargo_type: "Automotive Parts",
-  },
-  {
-    deal_id: "RV-005",
-    company_name: "Coastal Shipping LLC",
-    contact_name: "Robert Kim",
-    transportation_mode: "ocean",
-    stage: "closed_won",
-    value: 95000,
-    probability: 100,
-    created_date: "2024-10-05T12:00:00Z",
-    updated_date: "2024-11-15T16:30:00Z",
-    expected_close_date: "2024-11-30T00:00:00Z",
-    sales_rep: "Mike Rodriguez",
-    origin_city: "Seattle, WA",
-    destination_city: "Tokyo, Japan",
-    cargo_type: "Consumer Goods",
-  },
-  {
-    deal_id: "RV-006",
-    company_name: "Express Trucking Inc",
-    contact_name: "Amanda Foster",
-    transportation_mode: "trucking",
-    stage: "closed_lost",
-    value: 18000,
-    probability: 0,
-    created_date: "2024-09-15T10:30:00Z",
-    updated_date: "2024-11-20T14:00:00Z",
-    expected_close_date: "2024-11-01T00:00:00Z",
-    sales_rep: "Jennifer Walsh",
-    origin_city: "Atlanta, GA",
-    destination_city: "New York, NY",
-    cargo_type: "Food Products",
-  },
-  {
-    deal_id: "RV-007",
-    company_name: "International Air Cargo",
-    contact_name: "Carlos Mendez",
-    transportation_mode: "air",
-    stage: "proposal",
-    value: 52000,
-    probability: 65,
-    created_date: "2024-11-05T09:15:00Z",
-    updated_date: "2024-12-01T11:20:00Z",
-    expected_close_date: "2024-12-20T00:00:00Z",
-    sales_rep: "Tom Wilson",
-    origin_city: "Dallas, TX",
-    destination_city: "Frankfurt, Germany",
-    cargo_type: "Technology Equipment",
-  },
-  {
-    deal_id: "RV-008",
-    company_name: "Northern Rail Services",
-    contact_name: "Emily Johnson",
-    transportation_mode: "rail",
-    stage: "prospect",
-    value: 33000,
-    probability: 25,
-    created_date: "2024-11-25T13:45:00Z",
-    updated_date: "2024-12-02T15:30:00Z",
-    expected_close_date: "2025-01-15T00:00:00Z",
-    sales_rep: "Lisa Anderson",
-    origin_city: "Minneapolis, MN",
-    destination_city: "Portland, OR",
-    cargo_type: "Raw Materials",
-  },
-  {
-    deal_id: "RV-009",
-    company_name: "Atlantic Shipping Co",
-    contact_name: "Michael Brown",
-    transportation_mode: "ocean",
-    stage: "qualified",
-    value: 67000,
-    probability: 55,
-    created_date: "2024-10-20T11:00:00Z",
-    updated_date: "2024-11-28T13:15:00Z",
-    expected_close_date: "2024-12-30T00:00:00Z",
-    sales_rep: "Mike Rodriguez",
-    origin_city: "Boston, MA",
-    destination_city: "Rotterdam, Netherlands",
-    cargo_type: "Industrial Equipment",
-  },
-  {
-    deal_id: "RV-010",
-    company_name: "Southwest Logistics",
-    contact_name: "Jessica Martinez",
-    transportation_mode: "trucking",
-    stage: "negotiation",
-    value: 22000,
-    probability: 80,
-    created_date: "2024-11-12T16:20:00Z",
-    updated_date: "2024-12-04T10:45:00Z",
-    expected_close_date: "2024-12-18T00:00:00Z",
-    sales_rep: "Jennifer Walsh",
-    origin_city: "Phoenix, AZ",
-    destination_city: "Las Vegas, NV",
-    cargo_type: "Construction Materials",
-  },
-];
-
 export async function POST() {
-  try {
-    const dataSource = await initializeDataSource();
-    const dealRepository = dataSource.getRepository(Deal);
+  const dataSource = await initializeDataSource();
+  const repRepo = dataSource.getRepository(Rep);
+  const territoryRepo = dataSource.getRepository(Territory);
+  const dealRepo = dataSource.getRepository(Deal);
 
-    // Clear existing data
-    await dealRepository.clear();
-    console.log("Cleared existing deals");
+  // Seed reps
+  const reps = await repRepo.save([
+    { name: "Alice" },
+    { name: "Bob" },
+    { name: "Charlie" },
+  ]);
 
-    // Insert sample data
-    for (const dealData of sampleDeals) {
-      const deal = dealRepository.create(dealData);
-      await dealRepository.save(deal);
-    }
+  // Seed territories
+  const territories = await territoryRepo.save([
+    { name: "West", region: "CA", assigned_reps: [reps[0].id, reps[1].id], performance_metrics: { total_deals: 0, won_deals: 0, lost_deals: 0, revenue: 0 } },
+    { name: "East", region: "NY", assigned_reps: [reps[2].id], performance_metrics: { total_deals: 0, won_deals: 0, lost_deals: 0, revenue: 0 } },
+  ]);
 
-    return NextResponse.json({
-      message: `Successfully seeded ${sampleDeals.length} deals`,
-      count: sampleDeals.length,
-    });
-  } catch (error) {
-    console.error("Error seeding database:", error);
-    return NextResponse.json(
-      { error: "Failed to seed database" },
-      { status: 500 }
-    );
-  }
+  // Seed deals
+  await dealRepo.save([
+    {
+      deal_id: "D-001",
+      company_name: "Acme Corp",
+      contact_name: "John Doe",
+      transportation_mode: "trucking",
+      stage: "prospect",
+      value: 10000,
+      probability: 60,
+      created_date: new Date().toISOString(),
+      updated_date: new Date().toISOString(),
+      expected_close_date: new Date().toISOString(),
+      sales_rep: reps[0].name,
+      origin_city: "Los Angeles",
+      destination_city: "San Francisco",
+      assigned_rep_id: reps[0].id,
+      territory_id: territories[0].id,
+    },
+    {
+      deal_id: "D-002",
+      company_name: "Beta Inc",
+      contact_name: "Jane Smith",
+      transportation_mode: "rail",
+      stage: "qualified",
+      value: 20000,
+      probability: 40,
+      created_date: new Date().toISOString(),
+      updated_date: new Date().toISOString(),
+      expected_close_date: new Date().toISOString(),
+      sales_rep: reps[1].name,
+      origin_city: "San Diego",
+      destination_city: "Sacramento",
+      assigned_rep_id: reps[1].id,
+      territory_id: territories[0].id,
+    },
+    {
+      deal_id: "D-003",
+      company_name: "Gamma LLC",
+      contact_name: "Alice Johnson",
+      transportation_mode: "ocean",
+      stage: "closed_won",
+      value: 50000,
+      probability: 100,
+      created_date: new Date().toISOString(),
+      updated_date: new Date().toISOString(),
+      expected_close_date: new Date().toISOString(),
+      sales_rep: reps[2].name,
+      origin_city: "New York",
+      destination_city: "Boston",
+      assigned_rep_id: reps[2].id,
+      territory_id: territories[1].id,
+    },
+  ]);
+
+  return NextResponse.json({ success: true });
 }
