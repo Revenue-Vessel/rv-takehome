@@ -1,9 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import LoadingSpinner from "./LoadingSpinner";
+import { Deal } from "./DealList";
+
 
 interface StageData {
-  deals: any[];
+  deals: Deal[];
   count: number;
   percentage: number;
 }

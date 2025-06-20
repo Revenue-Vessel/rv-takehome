@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import LoadingSpinner from "./LoadingSpinner";
 
-interface Deal {
+export interface Deal {
   id: number;
   deal_id: string;
   company_name: string;
@@ -28,6 +28,14 @@ interface PipelineData {
     string,
     { deals: Deal[]; count: number; percentage: number }
   >;
+}
+
+interface FilterSet {
+  repFilter: number | null;
+  territoryFilter: number | null;
+  stageFilter: string;
+  dateRange: { start: string; end: string };
+  searchTerm: string;
 }
 
 interface Rep { id: number; name: string; }
@@ -56,8 +64,8 @@ const DealList: React.FC = () => {
   const [territoryFilter, setTerritoryFilter] = useState<number | null>(null);
   const [stageFilter, setStageFilter] = useState<string>("");
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: "", end: "" });
-  const [savedSearches, setSavedSearches] = useState<{name: string, filters: any}[]>([]);
-  const [recentFilters, setRecentFilters] = useState<any[]>([]);
+  const [savedSearches, setSavedSearches] = useState<{name: string, filters: FilterSet}[]>([]);
+  const [recentFilters, setRecentFilters] = useState<FilterSet[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [searchInput, setSearchInput] = useState("");
@@ -133,7 +141,7 @@ const DealList: React.FC = () => {
   };
 
   // Apply a saved or recent filter set
-  const applyFilters = (filters: any) => {
+  const applyFilters = (filters: FilterSet) => {
     setRepFilter(filters.repFilter ?? null);
     setTerritoryFilter(filters.territoryFilter ?? null);
     setStageFilter(filters.stageFilter ?? "");
@@ -510,7 +518,7 @@ const DealList: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full relative animate-fade-in" tabIndex={-1} aria-modal="true" role="dialog">
             <button className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-400 text-2xl font-bold transition" onClick={() => setShowAuditModal(false)} aria-label="Close modal">×</button>
             <h2 className="text-xl font-bold mb-4 text-blue-800">Audit Trail</h2>
-            <div className="mb-4 max-h-64 overflow-y-auto min-h-[64px] flex items-center justify-center">
+            <div className="mb-4 min-h-[200px] max-h-80 overflow-y-auto flex items-center justify-center">
               {auditLoading ? (
                 <div className="flex justify-center items-center w-full h-16">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>

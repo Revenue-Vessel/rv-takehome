@@ -137,10 +137,8 @@ const TerritoryDashboard: React.FC = () => {
                 type="button"
                 aria-label="Clear filters"
               >
-                {/* Eraser/Clean icon for clear filters */}
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.24 3.56a2.25 2.25 0 013.18 3.18l-10.5 10.5a2.25 2.25 0 01-3.18-3.18l10.5-10.5z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 17l2 2 8-8" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
