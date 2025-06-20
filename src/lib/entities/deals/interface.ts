@@ -29,6 +29,14 @@ export const DealDataSchema = z.object({
   origin_city: z.string(),
   destination_city: z.string(),
   cargo_type: z.string().optional(),
+  territory_id: z.number().optional(),
+  assigned_rep_id: z.number().optional(),
+  audit_trail: z.array(z.object({
+    changed_by: z.string(),
+    from: z.string(),
+    to: z.string(),
+    date: z.string(),
+  })).optional(),
 });
 
 // Export the inferred type for TypeScript usage
