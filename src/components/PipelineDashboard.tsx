@@ -5,8 +5,8 @@ import PipelineFunnel from "./PipelineFunnel";
 
 const PipelineDashboard: React.FC = () => {
   return (
-    <div className="min-h-screen p-4 sm:p-6 bg-gray-50 rounded-tr-lg">
-      <div className="mx-auto max-w-7xl w-full px-2 sm:px-6">
+    <div className="min-h-screen p-6 bg-gray-50 rounded-tr-lg">
+      <div className="mx-auto">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
           Pipeline Analytics Dashboard
         </h1>

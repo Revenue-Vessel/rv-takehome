@@ -9,7 +9,7 @@ export default function Home() {
   const [tab, setTab] = useState<'pipeline' | 'territory'>('pipeline');
 
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen gap-16 sm:p-8 font-[family-name:var(--font-geist-sans)] bg-slate-300">
+    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen sm:p-8 font-[family-name:var(--font-geist-sans)] bg-slate-300">
       <main className="flex flex-col row-start-2 items-center sm:items-start w-full ">
         <div className="flex gap-4">
           <button
