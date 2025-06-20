@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
+import LoadingSpinner from "./LoadingSpinner";
 
 interface Deal {
   id: number;
@@ -135,7 +136,7 @@ const PerformanceMetrics: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <LoadingSpinner />
       </div>
     );
   }

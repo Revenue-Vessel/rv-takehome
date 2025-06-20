@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useState, useRef } from "react";
+import LoadingSpinner from "./LoadingSpinner";
 
 interface Deal {
   id: number;
@@ -67,20 +68,20 @@ const DealList: React.FC = () => {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
 
-  const fetchDeals = async () => {
-    try {
-      const response = await fetch("/api/deals");
-      if (!response.ok) {
-        throw new Error("Failed to fetch deals");
+    const fetchDeals = async () => {
+      try {
+        const response = await fetch("/api/deals");
+        if (!response.ok) {
+          throw new Error("Failed to fetch deals");
+        }
+        const data = await response.json();
+        setPipelineData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setLoading(false);
       }
-      const data = await response.json();
-      setPipelineData(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   useEffect(() => {
     fetchDeals();
@@ -319,7 +320,7 @@ const DealList: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <LoadingSpinner />
       </div>
     );
   }
@@ -334,64 +335,75 @@ const DealList: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {/* Saved/Recent Search UI */}
-      <div className="flex flex-wrap gap-2 items-center mb-2">
-        <button className="bg-blue-600 text-white rounded-full px-4 py-2 shadow hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 font-semibold transition" onClick={handleSaveSearch}>Save Search</button>
-        {savedSearches.length > 0 && (
-          <select className="w-44 pl-3 pr-8 py-2 bg-blue-50 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none text-gray-900 shadow-sm" onChange={e => { const idx = Number(e.target.value); if (!isNaN(idx)) applyFilters(savedSearches[idx].filters); }} defaultValue="">
-            <option value="">Saved Searches</option>
-            {savedSearches.map((s, i) => <option key={i} value={i}>{s.name}</option>)}
-          </select>
-        )}
-        {recentFilters.length > 0 && (
-          <select className="w-44 pl-3 pr-8 py-2 bg-blue-50 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none text-gray-900 shadow-sm" onChange={e => { const idx = Number(e.target.value); if (!isNaN(idx)) applyFilters(recentFilters[idx]); }} defaultValue="">
-            <option value="">Recent Filters</option>
-            {recentFilters.map((f, i) => <option key={i} value={i}>Recent {i + 1}</option>)}
-          </select>
-        )}
-        <button className="border border-blue-400 text-blue-700 bg-white rounded-full px-4 py-2 hover:bg-blue-50 focus:ring-2 focus:ring-blue-400 font-semibold transition" onClick={clearAll}>Clear All</button>
-      </div>
-      {/* Advanced Search Bar */}
-      <div className="flex flex-wrap gap-2 items-center mb-2 relative">
-        <div className="relative w-64">
+      {/* Filters and Save Search Section with gap */}
+      <div className="space-y-6 mb-8">
+        {/* Advanced Search Bar */}
+        <div className="flex flex-wrap gap-2 items-center relative">
+          <div className="relative w-64">
           <input
             type="text"
-            placeholder="Search by company, contact, deal ID, rep, territory, or stage..."
-            value={searchInput}
-            onChange={e => { setSearchInput(e.target.value); setSearchTerm(e.target.value); }}
-            className="w-full pl-10 pr-4 py-2 bg-blue-50 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none placeholder-gray-400 text-gray-900 shadow-sm"
-            onFocus={() => setShowSuggestions(true)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-            aria-label="Search deals, reps, territories"
+              placeholder="Search by company, contact, deal ID, rep, territory, or stage..."
+              value={searchInput}
+              onChange={e => { setSearchInput(e.target.value); setSearchTerm(e.target.value); }}
+              className="w-full pl-10 pr-4 py-2 bg-blue-50 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none placeholder-gray-400 text-gray-900 shadow-sm"
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              aria-label="Search deals, reps, territories"
           />
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg className="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute top-12 left-0 bg-white border border-blue-200 rounded-lg shadow z-20 w-full max-h-40 overflow-y-auto animate-fade-in">
-              {suggestions.map((s, i) => (
-                <div key={i} className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-gray-800" onMouseDown={() => { setSearchInput(s.split(": ")[1]); setSearchTerm(s.split(": ")[1]); setShowSuggestions(false); }}>{s}</div>
-              ))}
+              <svg className="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </div>
-          )}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute top-12 left-0 bg-white border border-blue-200 rounded-lg shadow z-20 w-full max-h-40 overflow-y-auto animate-fade-in">
+                {suggestions.map((s, i) => (
+                  <div key={i} className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-gray-800" onMouseDown={() => { setSearchInput(s.split(": ")[1]); setSearchTerm(s.split(": ")[1]); setShowSuggestions(false); }}>{s}</div>
+                ))}
+              </div>
+            )}
+          </div>
+          <select value={repFilter ?? ""} onChange={e => setRepFilter(e.target.value ? Number(e.target.value) : null)} className="w-44 pl-3 pr-8 py-2 bg-blue-50 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none text-gray-900 shadow-sm">
+            <option value="">All Reps</option>
+            {reps.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+          <select value={territoryFilter ?? ""} onChange={e => setTerritoryFilter(e.target.value ? Number(e.target.value) : null)} className="w-48 pl-3 pr-8 py-2 bg-blue-50 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none text-gray-900 shadow-sm">
+            <option value="">All Territories</option>
+            {territories.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+          <select value={stageFilter} onChange={e => setStageFilter(e.target.value)} className="w-40 pl-3 pr-8 py-2 bg-blue-50 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none text-gray-900 shadow-sm">
+            <option value="">All Stages</option>
+            {Array.from(new Set(allDeals.map(d => d.stage))).map(stage => <option key={stage} value={stage}>{stage}</option>)}
+          </select>
+          <input type="date" value={dateRange.start} onChange={e => setDateRange({ ...dateRange, start: e.target.value })} className="w-36 pl-3 pr-3 py-2 bg-blue-50 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none text-gray-900 shadow-sm" />
+          <input type="date" value={dateRange.end} onChange={e => setDateRange({ ...dateRange, end: e.target.value })} className="w-36 pl-3 pr-3 py-2 bg-blue-50 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none text-gray-900 shadow-sm" />
+          <button
+            className="bg-blue-50 border border-blue-200 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none shadow-sm px-4 py-2 h-10 flex items-center justify-center"
+            onClick={clearAll}
+            aria-label="Clear all filters"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-        <select value={repFilter ?? ""} onChange={e => setRepFilter(e.target.value ? Number(e.target.value) : null)} className="w-44 pl-3 pr-8 py-2 bg-blue-50 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none text-gray-900 shadow-sm">
-          <option value="">All Reps</option>
-          {reps.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-        </select>
-        <select value={territoryFilter ?? ""} onChange={e => setTerritoryFilter(e.target.value ? Number(e.target.value) : null)} className="w-48 pl-3 pr-8 py-2 bg-blue-50 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none text-gray-900 shadow-sm">
-          <option value="">All Territories</option>
-          {territories.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-        </select>
-        <select value={stageFilter} onChange={e => setStageFilter(e.target.value)} className="w-40 pl-3 pr-8 py-2 bg-blue-50 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none text-gray-900 shadow-sm">
-          <option value="">All Stages</option>
-          {Array.from(new Set(allDeals.map(d => d.stage))).map(stage => <option key={stage} value={stage}>{stage}</option>)}
-        </select>
-        <input type="date" value={dateRange.start} onChange={e => setDateRange({ ...dateRange, start: e.target.value })} className="w-36 pl-3 pr-3 py-2 bg-blue-50 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none text-gray-900 shadow-sm" />
-        <input type="date" value={dateRange.end} onChange={e => setDateRange({ ...dateRange, end: e.target.value })} className="w-36 pl-3 pr-3 py-2 bg-blue-50 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none text-gray-900 shadow-sm" />
-        <button className="ml-auto bg-blue-600 text-white rounded-full px-4 py-2 shadow hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 font-semibold transition" disabled={selectedDeals.length === 0} onClick={() => setShowBulkModal(true)}>Bulk Assign</button>
+        {/* Saved/Recent Search UI (moved below filters) */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <button className="bg-blue-600 text-white rounded-[4px] px-4 py-2 shadow hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 font-semibold transition" onClick={handleSaveSearch}>Save Search</button>
+          {savedSearches.length > 0 && (
+            <select className="w-44 pl-3 pr-8 py-2 bg-blue-50 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none text-gray-900 shadow-sm" onChange={e => { const idx = Number(e.target.value); if (!isNaN(idx)) applyFilters(savedSearches[idx].filters); }} defaultValue="">
+              <option value="">Saved Searches</option>
+              {savedSearches.map((s, i) => <option key={i} value={i}>{s.name}</option>)}
+            </select>
+          )}
+          {recentFilters.length > 0 && (
+            <select className="w-44 pl-3 pr-8 py-2 bg-blue-50 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none text-gray-900 shadow-sm" onChange={e => { const idx = Number(e.target.value); if (!isNaN(idx)) applyFilters(recentFilters[idx]); }} defaultValue="">
+              <option value="">Recent Filters</option>
+              {recentFilters.map((f, i) => <option key={i} value={i}>Recent {i + 1}</option>)}
+            </select>
+          )}
+          <button className="bg-blue-600 text-white rounded-[4px] px-4 py-2 shadow hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 font-semibold transition ml-auto" disabled={selectedDeals.length === 0} onClick={() => setShowBulkModal(true)}>Bulk Assign</button>
+        </div>
       </div>
       {/* Table */}
       <div className="overflow-x-auto rounded-lg shadow border border-gray-200 bg-white">
