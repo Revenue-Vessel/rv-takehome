@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { initializeDataSource } from "../../../../data-source";
 import { Deal } from "../../../../lib/entities/deals/Deal";
 
@@ -7,7 +7,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { dealIds, assigned_rep_id, territory_id, changed_by } = body;
     if (!Array.isArray(dealIds) || (assigned_rep_id == null && territory_id == null)) {
-      return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+      return new Response(JSON.stringify({ error: "Invalid input" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
     const dataSource = await initializeDataSource();
     const dealRepository = dataSource.getRepository(Deal);
@@ -40,9 +43,15 @@ export async function POST(request: NextRequest) {
       await dealRepository.save(deal);
       updatedDeals.push(deal);
     }
-    return NextResponse.json({ updated: updatedDeals.length });
+    return new Response(JSON.stringify({ updated: updatedDeals.length }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Error in POST /api/deals/assign:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 } 

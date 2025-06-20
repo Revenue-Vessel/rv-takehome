@@ -35,6 +35,7 @@
     "@types/testing-library__jest-dom": "^6.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
+    "isomorphic-fetch": "^3.0.0",
     "jest": "^30.0.0",
     "jest-environment-jsdom": "^30.0.0",
     "tailwindcss": "^4",
