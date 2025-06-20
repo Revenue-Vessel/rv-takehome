@@ -38,8 +38,8 @@ interface FilterSet {
   searchTerm: string;
 }
 
-interface Rep { id: number; name: string; }
-interface Territory { id: number; name: string; }
+export interface Rep { id: number; name: string; }
+export interface Territory { id: number; name: string; }
 
 type SortField = keyof Deal;
 type SortDirection = "asc" | "desc";
