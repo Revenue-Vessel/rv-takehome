@@ -1,3 +1,5 @@
+import { Deal, DealWithTerritory } from "./types";
+
 const stateToTerritory: Record<string, string> = {
   CA: "West Coast",
   WA: "West Coast",
@@ -60,4 +62,11 @@ function getStateFromCity(city: string): string | null {
 export function getTerritory(originCity: string): string {
   const state = getStateFromCity(originCity);
   return state ? stateToTerritory[state] || "Other" : "Other";
+}
+
+export function enrichDeal(deal: Deal): DealWithTerritory {
+  return {
+    ...deal,
+    territory: getTerritory(deal.origin_city),
+  };
 }

@@ -1,29 +1,8 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
-import { getTerritory } from "@/lib/territory";
-
-interface Deal {
-  id: number;
-  deal_id: string;
-  company_name: string;
-  contact_name: string;
-  transportation_mode: string;
-  stage: string;
-  value: number;
-  probability: number;
-  created_date: string;
-  updated_date: string;
-  expected_close_date: string;
-  sales_rep: string;
-  origin_city: string;
-  destination_city: string;
-  cargo_type?: string;
-}
-
-interface DealWithTerritory extends Deal {
-  territory: string;
-}
+import { enrichDeal } from "@/lib/territory";
+import { Deal, DealWithTerritory } from "@/lib/types";
 
 interface PipelineData {
   totalDeals: number;
@@ -65,11 +44,6 @@ const DealList: React.FC = () => {
   useEffect(() => {
     fetchDeals();
   }, []);
-
-  const enrichDeal = (deal: Deal): DealWithTerritory => ({
-    ...deal,
-    territory: getTerritory(deal.origin_city),
-  });
 
   // Flatten all deals from all stages
   const allDeals: DealWithTerritory[] = useMemo(() => {
