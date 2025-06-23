@@ -2,6 +2,42 @@ import z from "zod";
 import { Deal } from "../entities/deals/Deal";
 import { DealDataSchema } from "../entities/deals/interface";
 
+export async function updateDeal(
+  dealData: any,
+  dealRepository: any
+): Promise<{ success: boolean; deal_id: string; error: any }> {
+  try {
+    const parsed = DealDataSchema.parse(dealData);
+
+    // Check for the existing deal
+    const existing = await dealRepository.findOneBy({
+      deal_id: parsed.deal_id,
+    });
+    if (!existing) {
+      return {
+        success: false,
+        deal_id: parsed.deal_id,
+        error: "Deal not found",
+      };
+    }
+
+    // Merge the data
+    const updated = dealRepository.merge(existing, parsed);
+    await dealRepository.save(updated);
+
+    return { success: true, deal_id: parsed.deal_id, error: undefined };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.errors, deal_id: dealData.deal_id };
+    }
+    return {
+      success: false,
+      error: "Internal server error",
+      deal_id: dealData.deal_id,
+    };
+  }
+}
+
 export async function validateAndSaveDeal(
   deal: any,
   dealRepository: any

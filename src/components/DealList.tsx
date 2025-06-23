@@ -1,5 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
+import { getTerritory } from "@/lib/territory";
 
 interface Deal {
   id: number;
@@ -17,6 +19,10 @@ interface Deal {
   origin_city: string;
   destination_city: string;
   cargo_type?: string;
+}
+
+interface DealWithTerritory extends Deal {
+  territory: string;
 }
 
 interface PipelineData {
@@ -37,36 +43,47 @@ const DealList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("created_date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [editedReps, setEditedReps] = useState<{ [deal_id: string]: string }>(
+    {}
+  );
+
+  const fetchDeals = async () => {
+    try {
+      const response = await fetch("/api/deals");
+      if (!response.ok) {
+        throw new Error("Failed to fetch deals");
+      }
+      const data = await response.json();
+      setPipelineData(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDeals = async () => {
-      try {
-        const response = await fetch("/api/deals");
-        if (!response.ok) {
-          throw new Error("Failed to fetch deals");
-        }
-        const data = await response.json();
-        setPipelineData(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDeals();
   }, []);
 
-  // Flatten all deals from all stages
-  const allDeals = useMemo(() => {
-    if (!pipelineData) return [];
+  const enrichDeal = (deal: Deal): DealWithTerritory => ({
+    ...deal,
+    territory: getTerritory(deal.origin_city),
+  });
 
-    const deals: Deal[] = [];
-    Object.values(pipelineData.stageAnalytics).forEach((stageData) => {
-      deals.push(...stageData.deals);
-    });
-    return deals;
+  // Flatten all deals from all stages
+  const allDeals: DealWithTerritory[] = useMemo(() => {
+    if (!pipelineData) return [];
+    return Object.values(pipelineData.stageAnalytics).flatMap((stageData) =>
+      stageData.deals.map(enrichDeal)
+    );
   }, [pipelineData]);
+
+  // Get all deduplicated sales reps
+  const uniqueSalesReps = useMemo(() => {
+    const reps = allDeals.map((deal) => deal.sales_rep);
+    return Array.from(new Set(reps));
+  }, [allDeals]);
 
   // Filter and sort deals
   const filteredAndSortedDeals = useMemo(() => {
@@ -79,7 +96,8 @@ const DealList: React.FC = () => {
         deal.stage.toLowerCase().includes(searchTerm.toLowerCase()) ||
         deal.transportation_mode
           .toLowerCase()
-          .includes(searchTerm.toLowerCase())
+          .includes(searchTerm.toLowerCase()) ||
+        deal.territory.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     filtered.sort((a, b) => {
@@ -117,6 +135,40 @@ const DealList: React.FC = () => {
       setSortDirection("asc");
     }
   };
+
+  async function handleSaveAllDeals() {
+    // Only save for reassigned sales reps
+    const updatedDeals = allDeals
+      .filter((deal) => editedReps[deal.deal_id])
+      .map((deal) => ({
+        ...deal,
+        sales_rep: editedReps[deal.deal_id],
+      }));
+
+    if (updatedDeals.length === 0) {
+      toast("No pending reassignments", { icon: "ℹ️" });
+      return;
+    }
+
+    const promise = fetch("/api/deals", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedDeals),
+    });
+
+    toast.promise(promise, {
+      loading: "Saving reassignments...",
+      success: "Deals successfully reassigned!",
+      error: "Failed to save deal reassignments",
+    });
+
+    const response = await promise;
+    if (response.ok) {
+      setEditedReps({});
+      // Refresh the table data
+      fetchDeals();
+    }
+  }
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -159,6 +211,7 @@ const DealList: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      <Toaster position="bottom-center" />
       {/* Search Bar */}
       <div className="flex justify-between items-center">
         <div className="relative flex-1 max-w-md">
@@ -188,6 +241,12 @@ const DealList: React.FC = () => {
         <div className="text-sm text-gray-600">
           Showing {filteredAndSortedDeals.length} of {allDeals.length} deals
         </div>
+        <button
+          onClick={handleSaveAllDeals}
+          className="px-4 py-2 bg-blue-600 text-white rounded"
+        >
+          Save All Reassignments
+        </button>
       </div>
 
       {/* Table */}
@@ -204,6 +263,8 @@ const DealList: React.FC = () => {
                 { key: "value", label: "Value" },
                 { key: "probability", label: "Probability" },
                 { key: "sales_rep", label: "Sales Rep" },
+                { key: "reassign", label: "Reassign" },
+                { key: "territory", label: "Territory" },
                 { key: "expected_close_date", label: "Expected Close" },
               ].map(({ key, label }) => (
                 <th
@@ -255,6 +316,36 @@ const DealList: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {deal.sales_rep}
+                </td>
+                <td className="px-6 py-4">
+                  <select
+                    value={editedReps[deal.deal_id] ?? deal.sales_rep}
+                    onChange={(e) => {
+                      const newRep = e.target.value;
+                      setEditedReps((prev) => {
+                        // User put it back to the original rep → remove from edits
+                        if (newRep === deal.sales_rep) {
+                          const copy = { ...prev };
+                          delete copy[deal.deal_id];
+                          return copy;
+                        }
+                        // Otherwise, track the edit
+                        return { ...prev, [deal.deal_id]: newRep };
+                      });
+                    }}
+                  >
+                    <option value="">-- Select --</option>
+                    {uniqueSalesReps.map((rep) =>
+                      rep !== deal.sales_rep ? (
+                        <option value={rep} key={rep}>
+                          {rep}
+                        </option>
+                      ) : null
+                    )}
+                  </select>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {deal.territory}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {formatDate(deal.expected_close_date)}
