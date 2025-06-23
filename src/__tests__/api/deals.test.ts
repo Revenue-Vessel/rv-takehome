@@ -31,7 +31,7 @@ jest.mock("../../data-source");
 jest.mock("../../lib/entities/deals/Deal");
 
 import { NextRequest } from "next/server";
-import { GET, POST } from "../../app/api/deals/route";
+import { GET, POST, PUT } from "../../app/api/deals/route";
 import { initializeDataSource } from "../../data-source";
 
 const mockInitializeDataSource = initializeDataSource as jest.MockedFunction<
@@ -77,6 +77,60 @@ describe("/api/deals", () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe("PUT /api/deals", () => {
+    it("should return 400 if updating non-existent deal", async () => {
+      const updatedDeal = {
+        ...validDealData,
+        sales_rep: "Someone",
+      };
+
+      mockRepository.findOneBy.mockResolvedValue(null);
+
+      const request = new NextRequest("http://localhost:3000/api/deals", {
+        method: "PUT",
+        body: JSON.stringify(updatedDeal),
+      });
+
+      const response = await PUT(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe("Deal not found");
+      expect(mockRepository.save).not.toHaveBeenCalled();
+    });
+
+    it("should reject invalid update shape", async () => {
+      const invalidDeal = {
+        invalid_field: 42,
+      };
+
+      const request = new NextRequest("http://localhost:3000/api/deals", {
+        method: "PUT",
+        body: JSON.stringify(invalidDeal),
+      });
+
+      const response = await PUT(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBeDefined();
+    });
+
+    it("should handle DB errors gracefully", async () => {
+      mockInitializeDataSource.mockRejectedValue(new Error("Database problem"));
+      const request = new NextRequest("http://localhost:3000/api/deals", {
+        method: "PUT",
+        body: JSON.stringify(validDealData),
+      });
+
+      const response = await PUT(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.error).toBe("Internal server error");
+    });
   });
 
   describe("POST /api/deals", () => {
