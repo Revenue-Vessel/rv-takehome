@@ -124,11 +124,19 @@ async function handleSaveAllDeals() {
 
 ### **Technical Decisions:** Architecture choices and trade-offs made
 
+- Leverage existing table to create reassignment column for sales reps
+- Borrow layout from `PipelineFunnel` to create vertical bar chart for `TerritoryBarChart`
+
+Trade-offs: less work with consistent layout but also less unique components, OK for prototype IMO.
+
 ### **Demo Guide:** How to see your best features in action
+
+- View `TerritoryBarChart` for territory metrics
+- Select from table column `Reassign` dropdown when reassigning sales rep and hit `Save All Reassignments`
 
 ### What you'd prioritize next with more time
 
-Probably fixing the test errors, with initial repo cloning changes saw some errors related to:
+Adding more tests and fixing the test errors, with initial repo cloning changes saw some errors related to:
 
 - `Error in POST /api/deals: Error: Database connection failed`
 - `Error in POST /api/deals: Error: Invalid JSON`
