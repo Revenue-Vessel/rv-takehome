@@ -24,8 +24,8 @@ Needs:
 
             Two toggle-able views
                 1. [CHUNK #1] table of reps (unique)
-                    - A. name, contact, region, # of deals, territory
-                    - B. multiselect + re-assignment capability
+                    [x] A. name, contact, region, # of deals, territory
+                    [] B. multiselect + re-assignment capability
 
                 2. [CHUNK #2] map view 
                     - deals location

@@ -2,13 +2,18 @@
 import React, { useState } from "react";
 import SalesRepList from "./SalesRepList";
 import SalesRepMap from "./SalesRepMap";
+import TerritoryList from "./TerritoryList";
+
+type ViewType = "sales-reps" | "map";
+type FilterType = "sales-reps" | "territories";
 
 const SalesRepSection: React.FC = () => {
-  const [activeView, setActiveView] = useState<"sales-reps" | "map">("sales-reps");
+  const [activeView, setActiveView] = useState<ViewType>("sales-reps");
+  const [activeFilter, setActiveFilter] = useState<FilterType>("sales-reps");
 
   return (
     <div className="space-y-4">
-      {/* Toggle Buttons */}
+      {/* Main Toggle Buttons */}
       <div className="flex space-x-2">
         <button
           onClick={() => setActiveView("sales-reps")}
@@ -32,9 +37,41 @@ const SalesRepSection: React.FC = () => {
         </button>
       </div>
 
+      {/* Filter Options (only show when Sales Representatives view is active) */}
+      {activeView === "sales-reps" && (
+        <div className="flex space-x-4 text-sm">
+          <button
+            onClick={() => setActiveFilter("sales-reps")}
+            className={`px-3 py-1 rounded transition-colors ${
+              activeFilter === "sales-reps"
+                ? "text-blue-600 font-medium underline"
+                : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            List by sales reps
+          </button>
+          <button
+            onClick={() => setActiveFilter("territories")}
+            className={`px-3 py-1 rounded transition-colors ${
+              activeFilter === "territories"
+                ? "text-blue-600 font-medium underline"
+                : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            List by territories
+          </button>
+        </div>
+      )}
+
       {/* Content */}
       <div className="mt-4">
-        {activeView === "sales-reps" ? <SalesRepList /> : <SalesRepMap />}
+        {activeView === "map" ? (
+          <SalesRepMap />
+        ) : activeFilter === "sales-reps" ? (
+          <SalesRepList />
+        ) : (
+          <TerritoryList />
+        )}
       </div>
     </div>
   );
