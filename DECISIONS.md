@@ -20,11 +20,11 @@ Needs:
 
      UI - Sales Rep section:
             Two toggle-able views
-                1. [CHUNK #1] table of reps (unique)
+                1. ✅ [CHUNK #1] table of reps (unique)
                     [x] A. name, contact, region, # of deals, territory
-                    [] B. multiselect + re-assignment capability
+                    [x] B. multiselect + re-assignment capability
 
-                2. [CHUNK #2] map view 
+                2. ❌ (no time) [CHUNK #2] map view 
                     - deals location
 
 

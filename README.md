@@ -68,4 +68,5 @@ What you'd prioritize next with more time
     - Add map + populate with data to represent where sales reps are located
     - More granular territor locations so it's not just the general state, but more region specific
     - On the "Update selected reps" functionality feature, the Update buttonat the bottom will act wonky and jump to bottom of page if there's a high amount of reps selected so should be fixed size table
-    - General UI things (font color for some parts of the UI that are too light, sizing issue with Select All in "List by territories" iew)
+    - General UI things (font color for some parts of the UI that are too light, sizing issue with Select All in "List by territories" view)
+

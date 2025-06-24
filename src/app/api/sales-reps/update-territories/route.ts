@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRepository } from 'typeorm';
+import { initializeDataSource } from '../../../../data-source';
 import { SalesRep } from '../../../../lib/entities/deals/SalesRep';
 
 export async function PUT(request: NextRequest) {
@@ -29,7 +29,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const salesRepRepository = getRepository(SalesRep);
+    const dataSource = await initializeDataSource();
+    const salesRepRepository = dataSource.getRepository(SalesRep);
 
     // Update all sales reps with the new territory
     await salesRepRepository
