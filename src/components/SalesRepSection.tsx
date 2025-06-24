@@ -10,6 +10,19 @@ type FilterType = "sales-reps" | "territories";
 const SalesRepSection: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewType>("sales-reps");
   const [activeFilter, setActiveFilter] = useState<FilterType>("sales-reps");
+  const [territoryFilter, setTerritoryFilter] = useState<string>("");
+
+  const handleTerritoryClick = (territory: string) => {
+    setTerritoryFilter(territory);
+    setActiveFilter("sales-reps");
+  };
+
+  const handleFilterChange = (filter: FilterType) => {
+    setActiveFilter(filter);
+    if (filter === "territories") {
+      setTerritoryFilter(""); // Clear territory filter when switching to territories view
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -41,7 +54,7 @@ const SalesRepSection: React.FC = () => {
       {activeView === "sales-reps" && (
         <div className="flex space-x-4 text-sm">
           <button
-            onClick={() => setActiveFilter("sales-reps")}
+            onClick={() => handleFilterChange("sales-reps")}
             className={`px-3 py-1 rounded transition-colors ${
               activeFilter === "sales-reps"
                 ? "text-blue-600 font-medium underline"
@@ -51,7 +64,7 @@ const SalesRepSection: React.FC = () => {
             List by sales reps
           </button>
           <button
-            onClick={() => setActiveFilter("territories")}
+            onClick={() => handleFilterChange("territories")}
             className={`px-3 py-1 rounded transition-colors ${
               activeFilter === "territories"
                 ? "text-blue-600 font-medium underline"
@@ -68,9 +81,9 @@ const SalesRepSection: React.FC = () => {
         {activeView === "map" ? (
           <SalesRepMap />
         ) : activeFilter === "sales-reps" ? (
-          <SalesRepList />
+          <SalesRepList territoryFilter={territoryFilter} />
         ) : (
-          <TerritoryList />
+          <TerritoryList onTerritoryClick={handleTerritoryClick} />
         )}
       </div>
     </div>

@@ -20,7 +20,11 @@ interface TerritoryData {
 type SortField = keyof TerritoryData;
 type SortDirection = "asc" | "desc";
 
-const TerritoryList: React.FC = () => {
+interface TerritoryListProps {
+  onTerritoryClick: (territory: string) => void;
+}
+
+const TerritoryList: React.FC<TerritoryListProps> = ({ onTerritoryClick }) => {
   const [salesReps, setSalesReps] = useState<SalesRep[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -124,6 +128,10 @@ const TerritoryList: React.FC = () => {
     return colors[territory as keyof typeof colors] || "bg-gray-100 text-gray-800";
   };
 
+  const handleRowClick = (territory: string) => {
+    onTerritoryClick(territory);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -202,7 +210,11 @@ const TerritoryList: React.FC = () => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredAndSortedTerritories.map((territory) => (
-              <tr key={territory.territory} className="hover:bg-gray-50">
+              <tr 
+                key={territory.territory} 
+                className="hover:bg-gray-50 cursor-pointer transition-colors"
+                onClick={() => handleRowClick(territory.territory)}
+              >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTerritoryColor(

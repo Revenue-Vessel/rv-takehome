@@ -14,13 +14,23 @@ interface SalesRep {
 type SortField = keyof SalesRep;
 type SortDirection = "asc" | "desc";
 
-const SalesRepList: React.FC = () => {
+interface SalesRepListProps {
+  initialSearchTerm?: string;
+  territoryFilter?: string;
+}
+
+const SalesRepList: React.FC<SalesRepListProps> = ({ initialSearchTerm = "", territoryFilter = "" }) => {
   const [salesReps, setSalesReps] = useState<SalesRep[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [sortField, setSortField] = useState<SortField>("first_name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  // Update search term when initialSearchTerm prop changes
+  useEffect(() => {
+    setSearchTerm(initialSearchTerm);
+  }, [initialSearchTerm]);
 
   useEffect(() => {
     const fetchSalesReps = async () => {
@@ -43,14 +53,26 @@ const SalesRepList: React.FC = () => {
 
   // Filter and sort sales reps
   const filteredAndSortedSalesReps = useMemo(() => {
-    let filtered = salesReps.filter(
-      (salesRep) =>
-        `${salesRep.first_name} ${salesRep.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        salesRep.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        salesRep.phone_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        salesRep.territory.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        salesRep.amount_of_deals.toString().includes(searchTerm.toLowerCase())
-    );
+    let filtered = salesReps;
+
+    // If territory filter is provided, filter by territory first
+    if (territoryFilter) {
+      filtered = filtered.filter(salesRep => 
+        salesRep.territory.toLowerCase() === territoryFilter.toLowerCase()
+      );
+    }
+
+    // Then apply general search filter (if no territory filter or in addition to it)
+    if (searchTerm && !territoryFilter) {
+      filtered = filtered.filter(
+        (salesRep) =>
+          salesRep.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          salesRep.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          salesRep.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          salesRep.phone_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          salesRep.territory.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
 
     filtered.sort((a, b) => {
       let aValue = a[sortField];
@@ -77,7 +99,7 @@ const SalesRepList: React.FC = () => {
     });
 
     return filtered;
-  }, [salesReps, searchTerm, sortField, sortDirection]);
+  }, [salesReps, searchTerm, territoryFilter, sortField, sortDirection]);
 
   const handleSort = (field: SortField) => {
     if (field === sortField) {
