@@ -15,7 +15,7 @@ Needs:
 
     Chunk #2:
         3. See deals by territories (and how many per territory)
-        
+
         4. [LAST, if have time] Track performance across territories  
 
 
@@ -24,8 +24,8 @@ Needs:
 
             Two toggle-able views
                 1. [CHUNK #1] table of reps (unique)
-                    - name, conact, region, # of deals, territory
-                    - multiselect + re-assignment capability
+                    - A. name, contact, region, # of deals, territory
+                    - B. multiselect + re-assignment capability
 
                 2. [CHUNK #2] map view 
                     - deals location
@@ -39,7 +39,17 @@ Questions:
         DECISION: 
             - new field for "territory" because freight forwarder could be receiver or shipper 
             depending on if they are importing or exporting
+    
+    2. how granular is a territory?
+        - Could go more granular like "Southern California" or "NYC Metro"
+
+        DECISION:
+            - for time and simplicity just doing by state
 
     2. US or Global?
         DECISION:
             - for sake of time, limitig to US for now
+
+
+
+Assumptions:
