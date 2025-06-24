@@ -53,12 +53,13 @@ Which Milestone 2 specialization you pursued
 
 **AI Collaboration Report:** Specific examples of AI-generated code you improved
     - Seeding data in the Sales Rep List view as opposed to using the pattern for how `deals` data is seeded 
+    - honestly pretty minimal editing as my approach was a scaffold of this feature covering a minimal foundation of as many requirements possible versus a vertical approach of spending most my time working on one requirement
 
 
 
 **Technical Decisions:** Architecture choices and trade-offs made
     - Seeding data in the Sales Rep List view as opposed to using the pattern for how `deals` data is seeded 
-        - This is beca
+        - Because the sales rep data relies on the deals data so made more sense to keep this contained in the sales rep route
 
 
 **Demo Guide:** How to see your best features in action
