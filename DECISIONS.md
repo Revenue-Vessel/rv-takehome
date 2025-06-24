@@ -6,7 +6,6 @@ Problem:
     2. Currently using spreadsheet
 
 Needs:
-
     Chunk #1:
         1. See "sales reps" clearly 
         2. Assign "sales reps" territories
@@ -15,13 +14,11 @@ Needs:
 
     Chunk #2:
         3. See deals by territories (and how many per territory)
-
         4. [LAST, if have time] Track performance across territories  
 
 
 
      UI - Sales Rep section:
-
             Two toggle-able views
                 1. [CHUNK #1] table of reps (unique)
                     [x] A. name, contact, region, # of deals, territory

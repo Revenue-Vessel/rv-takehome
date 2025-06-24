@@ -26,6 +26,9 @@ const SalesRepList: React.FC<SalesRepListProps> = ({ initialSearchTerm = "", ter
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [sortField, setSortField] = useState<SortField>("first_name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [selectedReps, setSelectedReps] = useState<Set<number>>(new Set());
+  const [showUpdatePopover, setShowUpdatePopover] = useState(false);
+  const [newTerritory, setNewTerritory] = useState<string>("");
 
   // Update search term when initialSearchTerm prop changes
   useEffect(() => {
@@ -110,6 +113,62 @@ const SalesRepList: React.FC<SalesRepListProps> = ({ initialSearchTerm = "", ter
     }
   };
 
+  const handleSelectAll = () => {
+    if (selectedReps.size === filteredAndSortedSalesReps.length) {
+      setSelectedReps(new Set());
+    } else {
+      setSelectedReps(new Set(filteredAndSortedSalesReps.map(rep => rep.id)));
+    }
+  };
+
+  const handleSelectRep = (repId: number) => {
+    const newSelected = new Set(selectedReps);
+    if (newSelected.has(repId)) {
+      newSelected.delete(repId);
+    } else {
+      newSelected.add(repId);
+    }
+    setSelectedReps(newSelected);
+  };
+
+  const handleUpdateTerritories = async () => {
+    if (!newTerritory || selectedReps.size === 0) return;
+
+    try {
+      const response = await fetch("/api/sales-reps/update-territories", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          salesRepIds: Array.from(selectedReps),
+          newTerritory: newTerritory,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update territories");
+      }
+
+      // Update local state
+      setSalesReps(prev => 
+        prev.map(rep => 
+          selectedReps.has(rep.id) 
+            ? { ...rep, territory: newTerritory }
+            : rep
+        )
+      );
+
+      // Clear selections and close popover
+      setSelectedReps(new Set());
+      setShowUpdatePopover(false);
+      setNewTerritory("");
+    } catch (err) {
+      console.error("Error updating territories:", err);
+      // You might want to show an error message to the user here
+    }
+  };
+
   const getTerritoryColor = (territory: string) => {
     const colors = {
       CA: "bg-blue-100 text-blue-800",
@@ -119,6 +178,8 @@ const SalesRepList: React.FC<SalesRepListProps> = ({ initialSearchTerm = "", ter
     };
     return colors[territory as keyof typeof colors] || "bg-gray-100 text-gray-800";
   };
+
+  const availableTerritories = ["CA", "NY", "TX", "FL"];
 
   if (loading) {
     return (
@@ -174,6 +235,17 @@ const SalesRepList: React.FC<SalesRepListProps> = ({ initialSearchTerm = "", ter
         <table className="min-w-full bg-white border border-gray-200 rounded-lg">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedReps.size === filteredAndSortedSalesReps.length && filteredAndSortedSalesReps.length > 0}
+                    onChange={handleSelectAll}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span className="ml-2 text-xs text-gray-500">Select All</span>
+                </div>
+              </th>
               {[
                 { key: "first_name", label: "First Name" },
                 { key: "last_name", label: "Last Name" },
@@ -202,6 +274,14 @@ const SalesRepList: React.FC<SalesRepListProps> = ({ initialSearchTerm = "", ter
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredAndSortedSalesReps.map((salesRep) => (
               <tr key={salesRep.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={selectedReps.has(salesRep.id)}
+                    onChange={() => handleSelectRep(salesRep.id)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {salesRep.first_name}
                 </td>
@@ -241,6 +321,77 @@ const SalesRepList: React.FC<SalesRepListProps> = ({ initialSearchTerm = "", ter
           </tbody>
         </table>
       </div>
+
+      {/* Update Button */}
+      {selectedReps.size > 0 && (
+        <div className="flex justify-center">
+          <button
+            onClick={() => setShowUpdatePopover(true)}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Update Selected ({selectedReps.size})
+          </button>
+        </div>
+      )}
+
+      {/* Update Territory Popover */}
+      {showUpdatePopover && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Update Territory</h3>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-2">Selected Sales Representatives:</p>
+              <div className="max-h-32 overflow-y-auto border border-gray-200 rounded p-2 bg-gray-50">
+                {filteredAndSortedSalesReps
+                  .filter(rep => selectedReps.has(rep.id))
+                  .map(rep => (
+                    <div key={rep.id} className="text-sm text-gray-700">
+                      {rep.first_name} {rep.last_name} ({rep.territory})
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                New Territory:
+              </label>
+              <select
+                value={newTerritory}
+                onChange={(e) => setNewTerritory(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select a territory</option>
+                {availableTerritories.map(territory => (
+                  <option key={territory} value={territory}>
+                    {territory}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowUpdatePopover(false);
+                  setNewTerritory("");
+                }}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateTerritories}
+                disabled={!newTerritory}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {filteredAndSortedSalesReps.length === 0 && (
         <div className="text-center py-8 text-gray-500">

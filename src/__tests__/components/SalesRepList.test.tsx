@@ -80,6 +80,7 @@ describe('SalesRepList', () => {
       render(<SalesRepList />);
       
       await waitFor(() => {
+        expect(screen.getByText('Select All')).toBeInTheDocument();
         expect(screen.getByText('First Name')).toBeInTheDocument();
         expect(screen.getByText('Last Name')).toBeInTheDocument();
         expect(screen.getByText('Email')).toBeInTheDocument();

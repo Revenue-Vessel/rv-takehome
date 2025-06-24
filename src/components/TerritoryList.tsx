@@ -31,6 +31,9 @@ const TerritoryList: React.FC<TerritoryListProps> = ({ onTerritoryClick }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("territory");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [selectedTerritories, setSelectedTerritories] = useState<Set<string>>(new Set());
+  const [showUpdatePopover, setShowUpdatePopover] = useState(false);
+  const [newTerritory, setNewTerritory] = useState<string>("");
 
   useEffect(() => {
     const fetchSalesReps = async () => {
@@ -118,6 +121,70 @@ const TerritoryList: React.FC<TerritoryListProps> = ({ onTerritoryClick }) => {
     }
   };
 
+  const handleSelectAll = () => {
+    if (selectedTerritories.size === filteredAndSortedTerritories.length) {
+      setSelectedTerritories(new Set());
+    } else {
+      setSelectedTerritories(new Set(filteredAndSortedTerritories.map(territory => territory.territory)));
+    }
+  };
+
+  const handleSelectTerritory = (territory: string) => {
+    const newSelected = new Set(selectedTerritories);
+    if (newSelected.has(territory)) {
+      newSelected.delete(territory);
+    } else {
+      newSelected.add(territory);
+    }
+    setSelectedTerritories(newSelected);
+  };
+
+  const handleUpdateTerritories = async () => {
+    if (!newTerritory || selectedTerritories.size === 0) return;
+
+    try {
+      // Get all sales rep IDs from selected territories
+      const salesRepIds: number[] = [];
+      salesReps.forEach(rep => {
+        if (selectedTerritories.has(rep.territory)) {
+          salesRepIds.push(rep.id);
+        }
+      });
+
+      const response = await fetch("/api/sales-reps/update-territories", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          salesRepIds: salesRepIds,
+          newTerritory: newTerritory,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update territories");
+      }
+
+      // Update local state
+      setSalesReps(prev => 
+        prev.map(rep => 
+          selectedTerritories.has(rep.territory) 
+            ? { ...rep, territory: newTerritory }
+            : rep
+        )
+      );
+
+      // Clear selections and close popover
+      setSelectedTerritories(new Set());
+      setShowUpdatePopover(false);
+      setNewTerritory("");
+    } catch (err) {
+      console.error("Error updating territories:", err);
+      // You might want to show an error message to the user here
+    }
+  };
+
   const getTerritoryColor = (territory: string) => {
     const colors = {
       CA: "bg-blue-100 text-blue-800",
@@ -129,8 +196,13 @@ const TerritoryList: React.FC<TerritoryListProps> = ({ onTerritoryClick }) => {
   };
 
   const handleRowClick = (territory: string) => {
-    onTerritoryClick(territory);
+    // Only trigger if no territories are selected
+    if (selectedTerritories.size === 0) {
+      onTerritoryClick(territory);
+    }
   };
+
+  const availableTerritories = ["CA", "NY", "TX", "FL"];
 
   if (loading) {
     return (
@@ -155,7 +227,7 @@ const TerritoryList: React.FC<TerritoryListProps> = ({ onTerritoryClick }) => {
         <div className="relative flex-1 max-w-md">
           <input
             type="text"
-            placeholder="Search territories or agents..."
+            placeholder="Search territories..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -186,6 +258,17 @@ const TerritoryList: React.FC<TerritoryListProps> = ({ onTerritoryClick }) => {
         <table className="min-w-full bg-white border border-gray-200 rounded-lg">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedTerritories.size === filteredAndSortedTerritories.length && filteredAndSortedTerritories.length > 0}
+                    onChange={handleSelectAll}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span className="ml-2 text-xs text-gray-500">Select All</span>
+                </div>
+              </th>
               {[
                 { key: "territory", label: "Territory" },
                 { key: "sales_rep_count", label: "Sales Reps" },
@@ -212,9 +295,19 @@ const TerritoryList: React.FC<TerritoryListProps> = ({ onTerritoryClick }) => {
             {filteredAndSortedTerritories.map((territory) => (
               <tr 
                 key={territory.territory} 
-                className="hover:bg-gray-50 cursor-pointer transition-colors"
+                className={`hover:bg-gray-50 transition-colors ${
+                  selectedTerritories.size === 0 ? 'cursor-pointer' : ''
+                }`}
                 onClick={() => handleRowClick(territory.territory)}
               >
+                <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selectedTerritories.has(territory.territory)}
+                    onChange={() => handleSelectTerritory(territory.territory)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTerritoryColor(
@@ -244,6 +337,80 @@ const TerritoryList: React.FC<TerritoryListProps> = ({ onTerritoryClick }) => {
           </tbody>
         </table>
       </div>
+
+      {/* Update Button */}
+      {selectedTerritories.size > 0 && (
+        <div className="flex justify-center">
+          <button
+            onClick={() => setShowUpdatePopover(true)}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Update Selected ({selectedTerritories.size})
+          </button>
+        </div>
+      )}
+
+      {/* Update Territory Popover */}
+      {showUpdatePopover && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Update Territory</h3>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-2">Selected Territories:</p>
+              <div className="max-h-32 overflow-y-auto border border-gray-200 rounded p-2 bg-gray-50">
+                {filteredAndSortedTerritories
+                  .filter(territory => selectedTerritories.has(territory.territory))
+                  .map(territory => (
+                    <div key={territory.territory} className="text-sm text-gray-700 mb-1">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTerritoryColor(territory.territory)}`}>
+                        {territory.territory}
+                      </span>
+                      <span className="ml-2">({territory.sales_rep_count} sales reps)</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                New Territory:
+              </label>
+              <select
+                value={newTerritory}
+                onChange={(e) => setNewTerritory(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select a territory</option>
+                {availableTerritories.map(territory => (
+                  <option key={territory} value={territory}>
+                    {territory}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowUpdatePopover(false);
+                  setNewTerritory("");
+                }}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateTerritories}
+                disabled={!newTerritory}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {filteredAndSortedTerritories.length === 0 && (
         <div className="text-center py-8 text-gray-500">
