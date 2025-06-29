@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { calculateMonthlyForecasts } from "../lib/business/deals/forecast";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface Deal {
   id: number;
@@ -110,6 +111,48 @@ const DealForecast: React.FC<DealForecastProps> = ({ onCardClick }) => {
     }).format(value);
   };
 
+  // Prepare chart data
+  const chartData = useMemo(() => {
+    if (!forecast) return [];
+    
+    return forecast.monthlyForecasts.map((monthForecast) => ({
+      month: monthForecast.monthLabel,
+      won: monthForecast.alreadyWon,
+      expected: monthForecast.predictedRevenue,
+      total: monthForecast.totalRevenue,
+      dealCount: monthForecast.dealCount
+    }));
+  }, [forecast]);
+
+  interface TooltipProps {
+    active?: boolean;
+    payload?: Array<{
+      name: string;
+      value: number;
+      color: string;
+    }>;
+    label?: string;
+  }
+
+  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
+          <p className="font-semibold text-gray-800 mb-2">{label}</p>
+          {payload.map((entry, index) => (
+            <p key={index} className="text-sm" style={{ color: entry.color }}>
+              {entry.name}: {formatCurrency(entry.value)}
+            </p>
+          ))}
+          <p className="text-sm font-semibold text-gray-800 mt-1">
+            Total: {formatCurrency(payload.reduce((sum, entry) => sum + entry.value, 0))}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-32">
@@ -183,54 +226,23 @@ const DealForecast: React.FC<DealForecastProps> = ({ onCardClick }) => {
         ))}
       </div>
 
-      {/* Monthly Breakdown Table */}
+      {/* Monthly Revenue Breakdown Chart */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">
           Monthly Revenue Breakdown
         </h3>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Month
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Already Won
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Predicted
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Deals
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {forecast.monthlyForecasts.map((month, index) => (
-                <tr key={index}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {month.monthLabel}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(month.alreadyWon)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(month.predictedRevenue)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                    {formatCurrency(month.totalRevenue)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {month.dealCount}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend />
+              <Bar dataKey="won" name="Already Won" fill="#10B981" stackId="a" />
+              <Bar dataKey="expected" name="Expected" fill="#8B5CF6" stackId="a" />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>
