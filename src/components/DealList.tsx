@@ -27,7 +27,7 @@ interface PipelineData {
   >;
 }
 
-type SortField = keyof Deal;
+type SortField = keyof Deal | "days_since_update" | "risk";
 type SortDirection = "asc" | "desc";
 
 const DealList: React.FC = () => {
@@ -35,7 +35,7 @@ const DealList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortField, setSortField] = useState<SortField>("created_date");
+  const [sortField, setSortField] = useState<SortField>("days_since_update");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   useEffect(() => {
@@ -57,6 +57,50 @@ const DealList: React.FC = () => {
     fetchDeals();
   }, []);
 
+  // Helper functions
+  const isDealStalled = (deal: Deal) => {
+    // Don't mark closed deals as stalled
+    if (deal.stage === "closed_lost" || deal.stage === "closed_won") {
+      return false;
+    }
+    
+    const updated = new Date(deal.updated_date);
+    const now = new Date();
+    const daysSinceUpdate = Math.floor((now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24));
+    return daysSinceUpdate >= 21;
+  };
+
+  const getDaysSinceUpdate = (updatedDate: string) => {
+    const updated = new Date(updatedDate);
+    const now = new Date();
+    return Math.floor((now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24));
+  };
+
+  const calculateRiskScore = (deal: Deal) => {
+    // Don't calculate risk for closed deals
+    if (deal.stage === "closed_lost" || deal.stage === "closed_won") {
+      return 0;
+    }
+
+    const daysSinceUpdate = getDaysSinceUpdate(deal.updated_date);
+    
+    // Calculate risk based on all days since update - this is the dominant factor
+    // 0 days = 0 points, 30+ days = 100 points
+    const baseRisk = Math.min(100, (daysSinceUpdate / 30) * 100);
+    
+    // Multiplicative factors (much smaller impact):
+    // 1. Size factor: 0.8x to 1.2x (reduced range)
+    const maxDealValue = 100000;
+    const sizeFactor = 0.8 + (deal.value / maxDealValue) * 0.4;
+    
+    // 2. Probability factor: 0.8x to 1.2x (reduced range)
+    // 100% probability = 0.8x, 0% probability = 1.2x
+    const probabilityFactor = 0.8 + ((100 - deal.probability) / 100) * 0.4;
+    
+    const totalRisk = Math.round(baseRisk * sizeFactor * probabilityFactor);
+    return Math.min(100, Math.max(0, totalRisk));
+  };
+
   // Flatten all deals from all stages
   const allDeals = useMemo(() => {
     if (!pipelineData) return [];
@@ -70,7 +114,7 @@ const DealList: React.FC = () => {
 
   // Filter and sort deals
   const filteredAndSortedDeals = useMemo(() => {
-    let filtered = allDeals.filter(
+    const filtered = allDeals.filter(
       (deal) =>
         deal.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         deal.contact_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -83,8 +127,30 @@ const DealList: React.FC = () => {
     );
 
     filtered.sort((a, b) => {
-      let aValue = a[sortField];
-      let bValue = b[sortField];
+      let aValue: string | number | undefined;
+      let bValue: string | number | undefined;
+
+      // Handle the virtual "days_since_update" column
+      if (sortField === "days_since_update") {
+        // For closed deals, use negative values so they sort to the bottom
+        if (a.stage === "closed_won" || a.stage === "closed_lost") {
+          aValue = -1; // Negative value ensures closed deals sort to bottom
+        } else {
+          aValue = getDaysSinceUpdate(a.updated_date);
+        }
+        
+        if (b.stage === "closed_won" || b.stage === "closed_lost") {
+          bValue = -1; // Negative value ensures closed deals sort to bottom
+        } else {
+          bValue = getDaysSinceUpdate(b.updated_date);
+        }
+      } else if (sortField === "risk") {
+        aValue = calculateRiskScore(a);
+        bValue = calculateRiskScore(b);
+      } else {
+        aValue = a[sortField as keyof Deal];
+        bValue = b[sortField as keyof Deal];
+      }
 
       // Handle undefined values
       if (aValue === undefined && bValue === undefined) return 0;
@@ -187,8 +253,21 @@ const DealList: React.FC = () => {
         </div>
         <div className="text-sm text-gray-600">
           Showing {filteredAndSortedDeals.length} of {allDeals.length} deals
+          {filteredAndSortedDeals.filter(deal => isDealStalled(deal)).length > 0 && (
+            <span className="ml-2 text-red-600">
+              • {filteredAndSortedDeals.filter(deal => isDealStalled(deal)).length} stalled (21+ days)
+            </span>
+          )}
         </div>
       </div>
+
+      {/* Legend */}
+      {filteredAndSortedDeals.filter(deal => isDealStalled(deal)).length > 0 && (
+        <div className="flex items-center text-xs text-gray-600">
+          <div className="w-4 h-4 bg-red-50 border-l-4 border-red-500 mr-2"></div>
+          <span>Deals not updated in 21+ days</span>
+        </div>
+      )}
 
       {/* Table */}
       <div className="overflow-x-auto">
@@ -203,8 +282,10 @@ const DealList: React.FC = () => {
                 { key: "transportation_mode", label: "Mode" },
                 { key: "value", label: "Value" },
                 { key: "probability", label: "Probability" },
+                { key: "risk", label: "Risk" },
                 { key: "sales_rep", label: "Sales Rep" },
                 { key: "expected_close_date", label: "Expected Close" },
+                { key: "days_since_update", label: "Days Since Update" },
               ].map(({ key, label }) => (
                 <th
                   key={key}
@@ -225,7 +306,14 @@ const DealList: React.FC = () => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredAndSortedDeals.map((deal) => (
-              <tr key={deal.id} className="hover:bg-gray-50">
+              <tr 
+                key={deal.id} 
+                className={`hover:bg-gray-50 ${
+                  isDealStalled(deal) 
+                    ? "bg-red-50 hover:bg-red-100 border-l-4 border-red-500" 
+                    : ""
+                }`}
+              >
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {deal.deal_id}
                 </td>
@@ -254,10 +342,27 @@ const DealList: React.FC = () => {
                   {deal.probability}%
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    calculateRiskScore(deal) >= 70 ? "bg-red-100 text-red-800" :
+                    calculateRiskScore(deal) >= 40 ? "bg-yellow-100 text-yellow-800" :
+                    "bg-green-100 text-green-800"
+                  }`}>
+                    {calculateRiskScore(deal)}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {deal.sales_rep}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {formatDate(deal.expected_close_date)}
+                </td>
+                <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                  isDealStalled(deal) ? "text-red-600" : "text-gray-900"
+                }`}>
+                  {deal.stage === "closed_won" || deal.stage === "closed_lost" 
+                    ? "-" 
+                    : `${getDaysSinceUpdate(deal.updated_date)} days`
+                  }
                 </td>
               </tr>
             ))}
@@ -275,3 +380,4 @@ const DealList: React.FC = () => {
 };
 
 export default DealList;
+
