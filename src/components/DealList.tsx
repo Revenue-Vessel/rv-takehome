@@ -27,7 +27,7 @@ interface PipelineData {
   >;
 }
 
-type SortField = keyof Deal;
+type SortField = keyof Deal | "days_since_update";
 type SortDirection = "asc" | "desc";
 
 const DealList: React.FC = () => {
@@ -57,6 +57,20 @@ const DealList: React.FC = () => {
     fetchDeals();
   }, []);
 
+  // Helper functions
+  const isDealStale = (updatedDate: string) => {
+    const updated = new Date(updatedDate);
+    const now = new Date();
+    const daysSinceUpdate = Math.floor((now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24));
+    return daysSinceUpdate >= 21;
+  };
+
+  const getDaysSinceUpdate = (updatedDate: string) => {
+    const updated = new Date(updatedDate);
+    const now = new Date();
+    return Math.floor((now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24));
+  };
+
   // Flatten all deals from all stages
   const allDeals = useMemo(() => {
     if (!pipelineData) return [];
@@ -83,8 +97,17 @@ const DealList: React.FC = () => {
     );
 
     filtered.sort((a, b) => {
-      let aValue = a[sortField];
-      let bValue = b[sortField];
+      let aValue: string | number | undefined;
+      let bValue: string | number | undefined;
+
+      // Handle the virtual "days_since_update" column
+      if (sortField === "days_since_update") {
+        aValue = getDaysSinceUpdate(a.updated_date);
+        bValue = getDaysSinceUpdate(b.updated_date);
+      } else {
+        aValue = a[sortField as keyof Deal];
+        bValue = b[sortField as keyof Deal];
+      }
 
       // Handle undefined values
       if (aValue === undefined && bValue === undefined) return 0;
@@ -187,8 +210,21 @@ const DealList: React.FC = () => {
         </div>
         <div className="text-sm text-gray-600">
           Showing {filteredAndSortedDeals.length} of {allDeals.length} deals
+          {filteredAndSortedDeals.filter(deal => isDealStale(deal.updated_date)).length > 0 && (
+            <span className="ml-2 text-red-600">
+              • {filteredAndSortedDeals.filter(deal => isDealStale(deal.updated_date)).length} stale (21+ days)
+            </span>
+          )}
         </div>
       </div>
+
+      {/* Legend */}
+      {filteredAndSortedDeals.filter(deal => isDealStale(deal.updated_date)).length > 0 && (
+        <div className="flex items-center text-xs text-gray-600">
+          <div className="w-4 h-4 bg-red-50 border-l-4 border-red-500 mr-2"></div>
+          <span>Deals not updated in 21+ days (see &ldquo;Days Since Update&rdquo; column)</span>
+        </div>
+      )}
 
       {/* Table */}
       <div className="overflow-x-auto">
@@ -205,6 +241,8 @@ const DealList: React.FC = () => {
                 { key: "probability", label: "Probability" },
                 { key: "sales_rep", label: "Sales Rep" },
                 { key: "expected_close_date", label: "Expected Close" },
+                { key: "updated_date", label: "Last Updated" },
+                { key: "days_since_update", label: "Days Since Update" },
               ].map(({ key, label }) => (
                 <th
                   key={key}
@@ -225,7 +263,14 @@ const DealList: React.FC = () => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredAndSortedDeals.map((deal) => (
-              <tr key={deal.id} className="hover:bg-gray-50">
+              <tr 
+                key={deal.id} 
+                className={`hover:bg-gray-50 ${
+                  isDealStale(deal.updated_date) 
+                    ? "bg-red-50 hover:bg-red-100 border-l-4 border-red-500" 
+                    : ""
+                }`}
+              >
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {deal.deal_id}
                 </td>
@@ -259,6 +304,14 @@ const DealList: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {formatDate(deal.expected_close_date)}
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {formatDate(deal.updated_date)}
+                </td>
+                <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                  isDealStale(deal.updated_date) ? "text-red-600" : "text-gray-900"
+                }`}>
+                  {getDaysSinceUpdate(deal.updated_date)} days
+                </td>
               </tr>
             ))}
           </tbody>
@@ -275,3 +328,4 @@ const DealList: React.FC = () => {
 };
 
 export default DealList;
+
