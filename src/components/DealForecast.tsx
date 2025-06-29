@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
-import { calculateMonthlyForecasts, calculateAverageDealDuration } from "../lib/business/deals/forecast";
+import { calculateMonthlyForecasts } from "../lib/business/deals/forecast";
 
 interface Deal {
   id: number;
@@ -146,27 +146,6 @@ const DealForecast: React.FC<DealForecastProps> = ({ onCardClick }) => {
 
   return (
     <div className="space-y-6">
-      {/* Forecast Summary */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-blue-600 text-lg">📊</span>
-          <h3 className="text-lg font-semibold text-blue-800">Forecast Summary</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div>
-            <span className="text-blue-600 font-medium">Active Deals:</span> {forecast.totalActiveDeals}
-          </div>
-          <div>
-            <span className="text-blue-600 font-medium">Avg Deal Duration:</span> {Math.round(calculateAverageDealDuration(pipelineData?.stageAnalytics.closed_won?.deals || []))} days
-          </div>
-          <div>
-            <span className="text-blue-600 font-medium">Total Predicted Revenue:</span> {formatCurrency(
-              forecast.monthlyForecasts.reduce((sum, month) => sum + month.totalRevenue, 0)
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Monthly Forecast Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {forecastCards.map((card, index) => (

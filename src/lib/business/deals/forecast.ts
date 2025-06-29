@@ -16,42 +16,64 @@ export interface DealFilter {
 
 /**
  * Calculate the average deal duration from created_date to updated_date for closed won deals
+ * Returns null if no historical data is available
  */
-export function calculateAverageDealDuration(closedWonDeals: Deal[]): number {
-  if (closedWonDeals.length === 0) return 90; // Default to 90 days if no historical data
+export function calculateAverageDealDuration(closedWonDeals: Deal[]): number | null {
+  if (closedWonDeals.length === 0) return null;
   
-  const dealDurations: number[] = [];
-  closedWonDeals.forEach(deal => {
+  const dealDurations = closedWonDeals.map(deal => {
     const created = new Date(deal.created_date);
     const updated = new Date(deal.updated_date);
-    const durationInDays = Math.ceil((updated.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
-    dealDurations.push(durationInDays);
+    return Math.ceil((updated.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
   });
   
   return dealDurations.reduce((sum, duration) => sum + duration, 0) / dealDurations.length;
 }
 
 /**
- * Calculate the predicted close date for a deal based on historical data and expected close date
- * Uses the LATER of expected_close_date and predicted date (based on historical average) for all stages
+ * Calculate the predicted close date for a deal
+ * Uses expected_close_date if no historical data, otherwise uses the later of expected and predicted dates
  */
-export function calculatePredictedCloseDate(deal: Deal, avgDealDuration: number): Date {
-  const createdDate = new Date(deal.created_date);
+export function calculatePredictedCloseDate(deal: Deal, avgDealDuration: number | null): Date {
   const expectedCloseDate = new Date(deal.expected_close_date);
   
+  // If no historical data, only use expected_close_date
+  if (avgDealDuration === null) {
+    return expectedCloseDate;
+  }
+  
   // Calculate predicted close date based on historical average duration
+  const createdDate = new Date(deal.created_date);
   const predictedCloseDate = new Date(createdDate.getTime() + (avgDealDuration * 24 * 60 * 60 * 1000));
   
-  // Use the LATER of expected_close_date and predicted date for all stages
+  // Use the later of expected_close_date and predicted date
   return new Date(Math.max(expectedCloseDate.getTime(), predictedCloseDate.getTime()));
 }
 
 /**
  * Check if a deal is predicted to close within a given month range
  */
-export function isDealInMonth(deal: Deal, monthStart: Date, monthEnd: Date, avgDealDuration: number): boolean {
+export function isDealInMonth(deal: Deal, monthStart: Date, monthEnd: Date, avgDealDuration: number | null): boolean {
   const finalCloseDate = calculatePredictedCloseDate(deal, avgDealDuration);
   return finalCloseDate >= monthStart && finalCloseDate <= monthEnd;
+}
+
+/**
+ * Get active deals (not closed_won or closed_lost)
+ */
+function getActiveDeals(allDeals: Deal[]): Deal[] {
+  return allDeals.filter(deal => deal.stage !== 'closed_won' && deal.stage !== 'closed_lost');
+}
+
+/**
+ * Get deals that closed in a specific month
+ */
+function getDealsClosedInMonth(deals: Deal[], targetMonth: Date): Deal[] {
+  return deals.filter(deal => {
+    const updatedDate = new Date(deal.updated_date);
+    return updatedDate.getMonth() === targetMonth.getMonth() && 
+           updatedDate.getFullYear() === targetMonth.getFullYear();
+  });
 }
 
 /**
@@ -63,35 +85,23 @@ export function calculateMonthlyForecasts(
   months: Array<{ date: Date; label: string }>
 ): MonthlyForecast[] {
   const avgDealDuration = calculateAverageDealDuration(closedWonDeals);
+  const activeDeals = getActiveDeals(allDeals);
   
   return months.map((monthInfo, index) => {
     const monthStart = monthInfo.date;
     const monthEnd = new Date(monthInfo.date.getFullYear(), monthInfo.date.getMonth() + 1, 0);
     
-    let predictedRevenue = 0;
-    let dealCount = 0;
-
-    // Filter active deals (not closed_won or closed_lost)
-    const activeDeals = allDeals.filter(deal => 
-      deal.stage !== 'closed_won' && deal.stage !== 'closed_lost'
+    // Calculate predicted revenue from active deals
+    const dealsInMonth = activeDeals.filter(deal => 
+      isDealInMonth(deal, monthStart, monthEnd, avgDealDuration)
+    );
+    
+    const predictedRevenue = dealsInMonth.reduce((sum, deal) => 
+      sum + (deal.value * deal.probability / 100), 0
     );
 
-    activeDeals.forEach(deal => {
-      if (isDealInMonth(deal, monthStart, monthEnd, avgDealDuration)) {
-        // Apply probability to the deal value
-        const probableValue = deal.value * (deal.probability / 100);
-        predictedRevenue += probableValue;
-        dealCount++;
-      }
-    });
-
     // Get already won deals for current month (index 0)
-    const currentMonthWonDeals = index === 0 ? closedWonDeals.filter(deal => {
-      const updatedDate = new Date(deal.updated_date);
-      return updatedDate.getMonth() === monthInfo.date.getMonth() && 
-             updatedDate.getFullYear() === monthInfo.date.getFullYear();
-    }) : [];
-
+    const currentMonthWonDeals = index === 0 ? getDealsClosedInMonth(closedWonDeals, monthInfo.date) : [];
     const alreadyWonRevenue = currentMonthWonDeals.reduce((sum, deal) => sum + deal.value, 0);
 
     return {
@@ -100,7 +110,7 @@ export function calculateMonthlyForecasts(
       alreadyWon: alreadyWonRevenue,
       predictedRevenue,
       totalRevenue: alreadyWonRevenue + predictedRevenue,
-      dealCount
+      dealCount: dealsInMonth.length
     };
   });
 }
