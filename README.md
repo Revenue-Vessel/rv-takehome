@@ -1,36 +1,145 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# README
 
-## Getting Started
+## Questions
 
-First, run the development server:
+### Which Milestone 1 path you chose and why
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Chose Territory Management System since it seemed more straightforward to me.
+
+### Which Milestone 2 specialization you pursued
+
+N/A
+
+### **AI Collaboration Report:** Specific examples of AI-generated code you improved
+
+```javascript
+// src/lib/territory.ts (BEFORE)
+
+export const stateToTerritory = {
+  CA: "West Coast",
+  WA: "West Coast",
+  OR: "West Coast",
+  // ... (rest)
+};
+
+export function getStateFromCity(cityStr) {
+  const match = cityStr.match(/,\s*([A-Z]{2})$/);
+  return match ? match[1] : null;
+}
+
+export function getTerritory(origin_city) {
+  const state = getStateFromCity(origin_city);
+  return state ? stateToTerritory[state] || "Other" : "Other";
+}
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Fixed type errors with `stateToTerritory[state]`
+- Add types for input and outputs
+- Fix regex to get state abbreviation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```javascript
+// src\components\DealList.tsx (BEFORE)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+const allDeals = useMemo(() => {
+  if (!pipelineData) return [];
 
-## Learn More
+  const deals: DealWithTerritory[] = [];
+  Object.values(pipelineData.stageAnalytics).forEach((stageData) => {
+    deals.push(
+      ...stageData.deals.map((deal) => ({
+        ...deal,
+        territory: getTerritory(deal.origin_city),
+      }))
+    );
+  });
+  return deals;
+}, [pipelineData]);
+```
 
-To learn more about Next.js, take a look at the following resources:
+- Refactor nesting for readability
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```javascript
+// src\components\DealList.tsx (BEFORE)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+<select
+  value={editedReps[deal.deal_id] ?? deal.sales_rep}
+  onChange={(e) => {
+    const newRep = e.target.value;
+    setEditedReps((prev) => {
+      // User put it back to the original rep → remove from edits
+      if (newRep === deal.sales_rep) {
+        const copy = { ...prev };
+        delete copy[deal.deal_id];
+        return copy;
+      }
+      // Otherwise, track the edit
+      return { ...prev, [deal.deal_id]: newRep };
+    });
+  }}
+>
+  {uniqueSalesReps.map((rep) => (
+    <option value={rep} key={rep}>
+      {rep}
+    </option>
+  ))}
+</select>
+```
 
-## Deploy on Vercel
+- Fix bug where current sales rep would show in dropdown (should not allow reassignment to self)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```javascript
+// src\components\DealList.tsx (BEFORE)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+async function handleSaveAllDeals() {
+  // Only save for reassigned sales reps
+  const updatedDeals = allDeals
+    .filter(
+      (deal) =>
+        editedReps[deal.deal_id] && editedReps[deal.deal_id] !== deal.sales_rep
+    )
+    .map((deal) => ({
+      ...deal,
+      sales_rep: editedReps[deal.deal_id],
+    }));
+
+  if (updatedDeals.length === 0) return;
+
+  const response = await fetch("/api/deals", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updatedDeals),
+  });
+
+  if (response.ok) {
+    setEditedReps({});
+  }
+  // handle errors
+}
+```
+
+- Update filter since we cannot select the same rep
+- Show error toast if update fails
+- Show success toast if update successful
+- Refresh table via `fetchDeals()` on update success
+
+### **Technical Decisions:** Architecture choices and trade-offs made
+
+- Leverage existing table to create reassignment column for sales reps
+- Borrow layout from `PipelineFunnel` to create vertical bar chart for `TerritoryBarChart`
+
+Trade-offs: less work with consistent layout but also less unique components, OK for prototype IMO.
+
+### **Demo Guide:** How to see your best features in action
+
+- View `TerritoryBarChart` for territory metrics
+- Select from table column `Reassign` dropdown when reassigning sales rep and hit `Save All Reassignments`
+
+### What you'd prioritize next with more time
+
+Adding more tests and fixing the test errors, with initial repo cloning changes saw some errors related to:
+
+- `Error in POST /api/deals: Error: Database connection failed`
+- `Error in POST /api/deals: Error: Invalid JSON`
+- `Error fetching deals by stage: Error: Database error`
+
+Even though the results were 48/48 tests passing 🤔.
