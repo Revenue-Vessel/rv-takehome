@@ -9,7 +9,8 @@
   - if stage is qualified, probabiilty is between 50 and 60 inclusive
   - If stage is prospect, probability is between 10 and 45 inclusive
 - In order to effectively forecast risk for stale deals, we need to know historical data (more specifically, for lost deals we need what stage the deal was in prior to loss, and the time spent in each stage). Without this, I based the risk calculation off of the probability of the deal, the time, and the value (higher deal amount, higher risk) but the historical data would give a much better sense of it.
+- I created a risk score based off of the days since update, the amount of the deal (higher = more risk), and the probability of the deal (lower = more risk). Only stale deals will be at a risk higher than 0, so sales reps can focus their energy.
 
-# AI Updates
+# AI
 
-- Adding the "Days Since Update" column was finicky, and didn't sort correctly. Had to clean up the code to make it less overly complex.
+- As noted, I used the AI to generate additional test data
