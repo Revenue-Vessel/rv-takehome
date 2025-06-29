@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
+import { filterDealsByForecast, DealFilter } from "../lib/business/deals/forecast";
 
 interface Deal {
   id: number;
@@ -30,7 +31,12 @@ interface PipelineData {
 type SortField = keyof Deal | "days_since_update" | "risk";
 type SortDirection = "asc" | "desc";
 
-const DealList: React.FC = () => {
+interface DealListProps {
+  filter?: DealFilter | null;
+  onClearFilter?: () => void;
+}
+
+const DealList: React.FC<DealListProps> = ({ filter, onClearFilter }) => {
   const [pipelineData, setPipelineData] = useState<PipelineData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +120,7 @@ const DealList: React.FC = () => {
 
   // Filter and sort deals
   const filteredAndSortedDeals = useMemo(() => {
-    const filtered = allDeals.filter(
+    let filtered = allDeals.filter(
       (deal) =>
         deal.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         deal.contact_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -125,6 +131,12 @@ const DealList: React.FC = () => {
           .toLowerCase()
           .includes(searchTerm.toLowerCase())
     );
+
+    // Apply forecast filter if present
+    if (filter) {
+      const closedWonDeals = pipelineData?.stageAnalytics.closed_won?.deals || [];
+      filtered = filterDealsByForecast(filtered, filter, closedWonDeals);
+    }
 
     filtered.sort((a, b) => {
       let aValue: string | number | undefined;
@@ -173,7 +185,7 @@ const DealList: React.FC = () => {
     });
 
     return filtered;
-  }, [allDeals, searchTerm, sortField, sortDirection]);
+  }, [allDeals, searchTerm, sortField, sortDirection, filter, pipelineData]);
 
   const handleSort = (field: SortField) => {
     if (field === sortField) {
@@ -251,13 +263,23 @@ const DealList: React.FC = () => {
             </svg>
           </div>
         </div>
-        <div className="text-sm text-gray-600">
-          Showing {filteredAndSortedDeals.length} of {allDeals.length} deals
-          {filteredAndSortedDeals.filter(deal => isDealStalled(deal)).length > 0 && (
-            <span className="ml-2 text-red-600">
-              • {filteredAndSortedDeals.filter(deal => isDealStalled(deal)).length} stalled (21+ days)
-            </span>
+        <div className="flex items-center gap-4">
+          {filter && onClearFilter && (
+            <button
+              onClick={onClearFilter}
+              className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+            >
+              Clear Filter
+            </button>
           )}
+          <div className="text-sm text-gray-600">
+            Showing {filteredAndSortedDeals.length} of {allDeals.length} deals
+            {filteredAndSortedDeals.filter(deal => isDealStalled(deal)).length > 0 && (
+              <span className="ml-2 text-red-600">
+                • {filteredAndSortedDeals.filter(deal => isDealStalled(deal)).length} stalled (21+ days)
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -266,6 +288,15 @@ const DealList: React.FC = () => {
         <div className="flex items-center text-xs text-gray-600">
           <div className="w-4 h-4 bg-red-50 border-l-4 border-red-500 mr-2"></div>
           <span>Deals not updated in 21+ days</span>
+        </div>
+      )}
+
+      {/* Filter Indicator */}
+      {filter && (
+        <div className="flex items-center text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-md">
+          <span className="font-medium">
+            Filtered by: {filter.month} ({filter.type === 'won' ? 'Won deals' : filter.type === 'expected' ? 'Expected deals' : 'All deals'})
+          </span>
         </div>
       )}
 
