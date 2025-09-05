@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 
 @Entity()
 export class Deal {
@@ -46,4 +46,13 @@ export class Deal {
 
   @Column({ nullable: true })
   cargo_type?: string;
+
+  @Column({ nullable: true })
+  territory_id?: number;
+
+  @Column({ nullable: true })
+  assigned_rep_id?: number;
+
+  @Column("simple-json", { nullable: true })
+  audit_trail?: { changed_by: string; from: string; to: string; date: string }[];
 }

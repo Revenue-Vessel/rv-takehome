@@ -1,3 +1,8 @@
+require('isomorphic-fetch');
+require('reflect-metadata');
+const { initializeDataSource } = require('./src/data-source');
+const { AppDataSource } = require('./src/data-source');
+
 require('@testing-library/jest-dom')
 
 // Mock Next.js router
@@ -26,4 +31,14 @@ global.fetch = jest.fn()
 // Clean up after each test
 afterEach(() => {
   jest.clearAllMocks()
-}) 
+})
+
+beforeAll(async () => {
+  await initializeDataSource();
+});
+
+afterAll(async () => {
+  if (AppDataSource.isInitialized) {
+    await AppDataSource.destroy();
+  }
+}); 

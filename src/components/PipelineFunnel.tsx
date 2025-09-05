@@ -1,8 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import LoadingSpinner from "./LoadingSpinner";
+import type { Deal } from "./DealList";
+
 
 interface StageData {
-  deals: any[];
+  deals: Deal[];
   count: number;
   percentage: number;
 }
@@ -56,7 +59,7 @@ const PipelineFunnel: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <LoadingSpinner />
       </div>
     );
   }
