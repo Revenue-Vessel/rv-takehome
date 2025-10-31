@@ -2,6 +2,7 @@ import React from "react";
 import DealList from "./DealList";
 import PerformanceMetrics from "./PerformanceMetrics";
 import PipelineFunnel from "./PipelineFunnel";
+import SalesRepSection from "./SalesRepSection";
 
 const PipelineDashboard: React.FC = () => {
   return (
@@ -26,6 +27,14 @@ const PipelineDashboard: React.FC = () => {
               Performance Metrics
             </h2>
             <PerformanceMetrics />
+          </div>
+
+          {/* Sales Representatives Section */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              Sales Representatives
+            </h2>
+            <SalesRepSection />
           </div>
 
           {/* Deal List Section */}
