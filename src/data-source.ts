@@ -1,13 +1,15 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
 import { Deal } from "./lib/entities/deals/Deal"; // Adjust the path as necessary
+import { Rep } from "./lib/entities/Rep";
+import { Territory } from "./lib/entities/Territory";
 
 export const AppDataSource = new DataSource({
   type: "sqlite",
   database: "./database.sqlite",
   synchronize: true, // Automatically create database schema based on entities
   logging: false,
-  entities: [Deal],
+  entities: [Deal, Rep, Territory],
   migrations: [],
   subscribers: [],
 });
